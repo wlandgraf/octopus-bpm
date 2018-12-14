@@ -1,0 +1,126 @@
+unit Octopus.Json.Serializer;
+
+interface
+
+uses
+  System.Classes,
+  System.Rtti,
+  System.TypInfo,
+  Bcl.Json.Writer,
+  Bcl.Json.Serializer,
+  Octopus.Json.Converters,
+  Octopus.Process;
+
+type
+  TWorkflowSerializer = class
+  private
+    FWriter: TJsonWriter;
+    FConverters: TOctopusJsonConverters;
+    FSerializer: TJsonSerializer;
+    FProcess: TWorkflowProcess;
+  public
+    constructor Create(Stream: TStream);
+    destructor Destroy; override;
+    class function ProcessToJson(Process: TWorkflowProcess): string;
+    //class function InstanceToJson(Instance: TProcessInstance; Process: TWorkflowProcess): string;
+    procedure WriteProcess(Process: TWorkflowProcess);
+    //procedure WriteInstance(Instance: TProcessInstance; Process: TWorkflowProcess);
+    procedure WriteValue(Value: TValue; ValueType: PTypeInfo);
+    class function ValueToJson(Value: TValue; ValueType: PTypeInfo): string;
+  end;
+
+implementation
+
+{ TWorkflowSerializer }
+
+constructor TWorkflowSerializer.Create(Stream: TStream);
+begin
+  FWriter := TJsonWriter.Create(Stream);
+  FWriter.IndentLength := 2;
+  FConverters := TOctopusJsonConverters.Create;
+  FConverters.OnGetProcess :=
+    function: TWorkflowProcess
+    begin
+      result := FProcess;
+    end;
+
+  FSerializer := TJsonSerializer.Create(FWriter, FConverters);
+end;
+
+destructor TWorkflowSerializer.Destroy;
+begin
+  FWriter.Free;
+  FConverters.Free;
+  FSerializer.Free;
+  inherited;
+end;
+
+//class function TWorkflowSerializer.InstanceToJson(Instance: TProcessInstance; Process: TWorkflowProcess): string;
+//var
+//  stream: TStringStream;
+//  serializer: TWorkflowSerializer;
+//begin
+//  stream := TStringStream.Create;
+//  serializer := TWorkflowSerializer.Create(stream);
+//  try
+//    serializer.WriteInstance(Instance, Process);
+//    result := stream.DataString;
+//  finally
+//    stream.Free;
+//    serializer.Free;
+//  end;
+//end;
+
+class function TWorkflowSerializer.ProcessToJson(Process: TWorkflowProcess): string;
+var
+  stream: TStringStream;
+  serializer: TWorkflowSerializer;
+begin
+  stream := TStringStream.Create;
+  serializer := TWorkflowSerializer.Create(stream);
+  try
+    serializer.WriteProcess(Process);
+    result := stream.DataString;
+  finally
+    stream.Free;
+    serializer.Free;
+  end;
+end;
+
+class function TWorkflowSerializer.ValueToJson(Value: TValue; ValueType: PTypeInfo): string;
+var
+  stream: TStringStream;
+  serializer: TWorkflowSerializer;
+begin
+  stream := TStringStream.Create;
+  serializer := TWorkflowSerializer.Create(stream);
+  try
+    serializer.WriteValue(Value, ValueType);
+    result := stream.DataString;
+  finally
+    stream.Free;
+    serializer.Free;
+  end;
+end;
+
+//procedure TWorkflowSerializer.WriteInstance(Instance: TProcessInstance; Process: TWorkflowProcess);
+//begin
+//  FProcess := Process;
+//  FSerializer.Write(Instance);
+//  FWriter.Flush;
+//end;
+
+procedure TWorkflowSerializer.WriteProcess(Process: TWorkflowProcess);
+begin
+  FProcess := nil;
+  FSerializer.Write(Process);
+  FWriter.Flush;
+end;
+
+procedure TWorkflowSerializer.WriteValue(Value: TValue; ValueType: PTypeInfo);
+begin
+  FSerializer.Write(Value, ValueType);
+  FWriter.Flush;
+end;
+
+end.

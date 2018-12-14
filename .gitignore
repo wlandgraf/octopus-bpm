@@ -64,3 +64,9 @@ __recovery/
 
 # Castalia statistics file (since XE7 Castalia is distributed with Delphi)
 *.stat
+
+# Specific ignores
+/tests/dunitx-results.xml
+/tests/OctopusTests.res
+/tests/persistence/TestPersistence.res
+/tests/serialization/TestSerialization.res
