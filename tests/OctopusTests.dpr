@@ -14,8 +14,7 @@ uses
   OctopusTestCase in 'OctopusTestCase.pas',
   OctopusTestUnits in 'OctopusTestUnits.pas',
   OctopusTestUtils in 'OctopusTestUtils.pas',
-  MemoryInstanceData in 'MemoryInstanceData.pas',
-  Octopus.Persistence.Instance in '..\source\Octopus.Persistence.Instance.pas';
+  MemoryInstanceData in 'MemoryInstanceData.pas';
 
 var
   runner : ITestRunner;

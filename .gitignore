@@ -70,3 +70,4 @@ __recovery/
 /tests/OctopusTests.res
 /tests/persistence/TestPersistence.res
 /tests/serialization/TestSerialization.res
+tests/persistence/octopus.db
