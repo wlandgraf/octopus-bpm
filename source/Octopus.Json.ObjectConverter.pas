@@ -52,15 +52,15 @@ type
   private
     FConverters: TJsonConverters;
     FObjectFactory: IObjectFactory;
-    FOnObjectProcessed: TProc<TObject>;
+//    FOnObjectProcessed: TProc<TObject>;
     FOnGetProcess: TFunc<TWorkflowProcess>;
-    procedure SetOnObjectProcessed(Value: TProc<TObject>);
+//    procedure SetOnObjectProcessed(Value: TProc<TObject>);
   protected
     procedure ObjectProcessed(AObject: TObject);
     property ObjectFactory: IObjectFactory read FObjectFactory;
   public
     constructor Create(AConverters: TJsonConverters);
-    function CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter; virtual;
+    function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; virtual;
     function GetProcess: TWorkflowProcess;
     property Converters: TJsonConverters read FConverters;
     property OnGetProcess: TFunc<TWorkflowProcess> read FOnGetProcess write FOnGetProcess;
@@ -80,13 +80,13 @@ type
 
   TOctopusListConverterFactory = class(TOctopusConverterFactory)
   public
-    function CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter; override;
+    function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; override;
   end;
 
 implementation
 
 uses
-  Aurelius.Mapping.RttiUtils,
+  Bcl.Rtti.Utils,
   Octopus.Resources;
 
 { TOctopusObjectConverter }
@@ -233,13 +233,13 @@ function TOctopusObjectConverter.ReadProperty(const PropName: string; AObject: T
       if AType.IsInstance and AType.AsInstance.MetaclassType.InheritsFrom(TFlowElement) then
         AValue := ReadElementId(Reader) // reference to TFlowElement object
       else
-        FFactory.Converters.Get(TTypeToken.FromTypeInfo(AType.Handle)).ReadJson(Reader, AValue);
+        FFactory.Converters.Get(AType.Handle).ReadJson(Reader, AValue);
       result := oldObject <> AValue.AsObject;
     end
     else
     begin
       AValue := TValue.Empty;
-      FFactory.Converters.Get(TTypeToken.FromTypeInfo(AType.Handle)).ReadJson(Reader, AValue);
+      FFactory.Converters.Get(AType.Handle).ReadJson(Reader, AValue);
       result := true;
     end;
   end;
@@ -320,7 +320,7 @@ procedure TOctopusObjectConverter.WriteProperties(AObject: TObject; Writer: TJso
       if AType.IsInstance and AType.AsInstance.MetaclassType.InheritsFrom(TFlowElement) then
         WriteElementId(Writer, AValue.AsType<TFlowElement>) // reference to TFlowElement object
       else
-        FFactory.Converters.Get(TTypeToken.FromTypeInfo(AType.Handle)).WriteJson(Writer, AValue);
+        FFactory.Converters.Get(AType.Handle).WriteJson(Writer, AValue);
     end;
   end;
 
@@ -374,7 +374,7 @@ begin
     created := true;
   end;
   try
-    ReadList(Reader, AsList(Target));
+    ReadList(Reader, AsObjectList(Target));
   except
     if created then
       target.Free;
@@ -407,7 +407,7 @@ begin
   Writer.WriteBeginArray;
   if not Value.IsEmpty then
   begin
-    list := AsList(Value.AsObject);
+    list := AsObjectList(Value.AsObject);
     if list <> nil then
       for i := 0 to list.Count - 1 do
       begin
@@ -415,7 +415,7 @@ begin
         if item = nil then
           Writer.WriteNull
         else
-          FFactory.Converters.Get(TTypeToken.FromClass(item.ClassType)).WriteJson(Writer, item);
+          FFactory.Converters.Get(item.ClassType).WriteJson(Writer, item);
       end;
   end;
   Writer.WriteEndArray;
@@ -429,7 +429,8 @@ begin
   FObjectFactory := TObjectFactory.Create;
 end;
 
-function TOctopusConverterFactory.CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter;
+function TOctopusConverterFactory.CreateConverter(Converters: TJsonConverters;
+  const ATypeToken: TTypeToken): IJsonTypeConverter;
 begin
   if ATypeToken.IsClass then
     result := TOctopusObjectConverter.Create(ATypeToken.GetClass, Self)
@@ -449,21 +450,22 @@ end;
 
 procedure TOctopusConverterFactory.ObjectProcessed(AObject: TObject);
 begin
-  if Assigned(FOnObjectProcessed) then
-    FOnObjectProcessed(AObject);
+//  if Assigned(FOnObjectProcessed) then
+//    FOnObjectProcessed(AObject);
 end;
 
-procedure TOctopusConverterFactory.SetOnObjectProcessed(Value: TProc<TObject>);
-begin
-  FOnObjectProcessed := Value;
-end;
+//procedure TOctopusConverterFactory.SetOnObjectProcessed(Value: TProc<TObject>);
+//begin
+//  FOnObjectProcessed := Value;
+//end;
 
 { TOctopusListConverterFactory }
 
-function TOctopusListConverterFactory.CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter;
+function TOctopusListConverterFactory.CreateConverter(Converters: TJsonConverters;
+  const ATypeToken: TTypeToken): IJsonTypeConverter;
 begin
-  if ATypeToken.IsClass and IsList(ATypeToken.GetClass) then
-    result := TOctopusListConverter.Create(ATypeToken.GetClass, TTypeToken.FromClass(TRttiUtils.GetInstance.GetSurroundedClass(ATypeToken.GetClass)), Self)
+  if ATypeToken.IsClass and IsObjectList(ATypeToken.GetClass) then
+    result := TOctopusListConverter.Create(ATypeToken.GetClass, TRttiUtils.GetInstance.GetSurroundedClass(ATypeToken.GetClass), Self)
   else
     result := nil;
 end;

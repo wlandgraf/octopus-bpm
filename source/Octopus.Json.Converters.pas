@@ -25,7 +25,7 @@ type
 
   TFlowNodeConverterFactory = class(TOctopusConverterFactory)
   public
-    function CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter; override;
+    function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; override;
   end;
 
   TFlowNodeConverter = class(TOctopusObjectConverter)
@@ -35,7 +35,7 @@ type
 
   TVariableConverterFactory = class(TOctopusConverterFactory)
   public
-    function CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter; override;
+    function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; override;
   end;
 
   TVariableConverter = class(TOctopusObjectConverter)
@@ -115,7 +115,7 @@ begin
     if variable.DataType = nil then
       Reader.ReadNull
     else
-      Factory.Converters.Get(TTypeToken.FromTypeInfo(variable.DataType.NativeType)).ReadJson(Reader, value);
+      Factory.Converters.Get(variable.DataType.NativeType).ReadJson(Reader, value);
     variable.DefaultValue := value;
     result := true;
   end
@@ -133,7 +133,7 @@ begin
     if variable.DefaultValue.IsEmpty then
       Writer.WriteNull
     else
-      Factory.Converters.Get(TTypeToken.FromTypeInfo(variable.DefaultValue.TypeInfo)).WriteJson(Writer, variable.DefaultValue);
+      Factory.Converters.Get(variable.DefaultValue.TypeInfo).WriteJson(Writer, variable.DefaultValue);
     result := true;
   end
   else
@@ -142,7 +142,8 @@ end;
 
 { TVariableConverterFactory }
 
-function TVariableConverterFactory.CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter;
+function TVariableConverterFactory.CreateConverter(Converters: TJsonConverters;
+  const ATypeToken: TTypeToken): IJsonTypeConverter;
 begin
   if ATypeToken.IsClass and (ATypeToken.GetClass = TVariable) then
     result := TVariableConverter.Create(Self)
@@ -152,7 +153,8 @@ end;
 
 { TFlowNodeConverterFactory }
 
-function TFlowNodeConverterFactory.CreateConverter(const ATypeToken: TTypeToken): IJsonTypeConverter;
+function TFlowNodeConverterFactory.CreateConverter(Converters: TJsonConverters;
+  const ATypeToken: TTypeToken): IJsonTypeConverter;
 begin
   if ATypeToken.IsClass and ATypeToken.GetClass.InheritsFrom(TFlowNode) then
     result := TFlowNodeConverter.Create(Self)

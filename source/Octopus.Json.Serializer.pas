@@ -44,7 +44,7 @@ begin
       result := FProcess;
     end;
 
-  FSerializer := TJsonSerializer.Create(FWriter, FConverters);
+  FSerializer := TJsonSerializer.Create(FConverters, False);
 end;
 
 destructor TWorkflowSerializer.Destroy;
@@ -77,13 +77,16 @@ var
   serializer: TWorkflowSerializer;
 begin
   stream := TStringStream.Create;
-  serializer := TWorkflowSerializer.Create(stream);
   try
-    serializer.WriteProcess(Process);
+    serializer := TWorkflowSerializer.Create(stream);
+    try
+      serializer.WriteProcess(Process);
+    finally
+      serializer.Free;
+    end;
     result := stream.DataString;
   finally
     stream.Free;
-    serializer.Free;
   end;
 end;
 
@@ -113,13 +116,13 @@ end;
 procedure TWorkflowSerializer.WriteProcess(Process: TWorkflowProcess);
 begin
   FProcess := nil;
-  FSerializer.Write(Process);
+  FSerializer.Write(Process, FWriter);
   FWriter.Flush;
 end;
 
 procedure TWorkflowSerializer.WriteValue(Value: TValue; ValueType: PTypeInfo);
 begin
-  FSerializer.Write(Value, ValueType);
+  FSerializer.Write(Value, ValueType, FWriter);
   FWriter.Flush;
 end;
 
