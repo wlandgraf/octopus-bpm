@@ -52,11 +52,8 @@ type
   private
     FConverters: TJsonConverters;
     FObjectFactory: IObjectFactory;
-//    FOnObjectProcessed: TProc<TObject>;
     FOnGetProcess: TFunc<TWorkflowProcess>;
-//    procedure SetOnObjectProcessed(Value: TProc<TObject>);
   protected
-    procedure ObjectProcessed(AObject: TObject);
     property ObjectFactory: IObjectFactory read FObjectFactory;
   public
     constructor Create(AConverters: TJsonConverters);
@@ -102,7 +99,6 @@ end;
 function TOctopusObjectConverter.CreateInstance(AType: TClass): TObject;
 begin
   result := FFactory.ObjectFactory.CreateInstance(AType);
-  FFactory.ObjectProcessed(result);
 end;
 
 destructor TOctopusObjectConverter.Destroy;
@@ -300,7 +296,6 @@ begin
     exit;
   end;
 
-  FFactory.ObjectProcessed(AObject);
   Writer.WriteBeginObject;
 
   if WriteClassType then
@@ -447,17 +442,6 @@ begin
   if result = nil then
     raise Exception.Create(SErrorProcessNotAssigned);
 end;
-
-procedure TOctopusConverterFactory.ObjectProcessed(AObject: TObject);
-begin
-//  if Assigned(FOnObjectProcessed) then
-//    FOnObjectProcessed(AObject);
-end;
-
-//procedure TOctopusConverterFactory.SetOnObjectProcessed(Value: TProc<TObject>);
-//begin
-//  FOnObjectProcessed := Value;
-//end;
 
 { TOctopusListConverterFactory }
 

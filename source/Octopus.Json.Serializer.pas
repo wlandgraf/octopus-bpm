@@ -22,9 +22,7 @@ type
     constructor Create(Stream: TStream);
     destructor Destroy; override;
     class function ProcessToJson(Process: TWorkflowProcess): string;
-    //class function InstanceToJson(Instance: TProcessInstance; Process: TWorkflowProcess): string;
     procedure WriteProcess(Process: TWorkflowProcess);
-    //procedure WriteInstance(Instance: TProcessInstance; Process: TWorkflowProcess);
     procedure WriteValue(Value: TValue; ValueType: PTypeInfo);
     class function ValueToJson(Value: TValue; ValueType: PTypeInfo): string;
   end;
@@ -54,22 +52,6 @@ begin
   FSerializer.Free;
   inherited;
 end;
-
-//class function TWorkflowSerializer.InstanceToJson(Instance: TProcessInstance; Process: TWorkflowProcess): string;
-//var
-//  stream: TStringStream;
-//  serializer: TWorkflowSerializer;
-//begin
-//  stream := TStringStream.Create;
-//  serializer := TWorkflowSerializer.Create(stream);
-//  try
-//    serializer.WriteInstance(Instance, Process);
-//    result := stream.DataString;
-//  finally
-//    stream.Free;
-//    serializer.Free;
-//  end;
-//end;
 
 class function TWorkflowSerializer.ProcessToJson(Process: TWorkflowProcess): string;
 var
@@ -105,13 +87,6 @@ begin
     serializer.Free;
   end;
 end;
-
-//procedure TWorkflowSerializer.WriteInstance(Instance: TProcessInstance; Process: TWorkflowProcess);
-//begin
-//  FProcess := Process;
-//  FSerializer.Write(Instance);
-//  FWriter.Flush;
-//end;
 
 procedure TWorkflowSerializer.WriteProcess(Process: TWorkflowProcess);
 begin

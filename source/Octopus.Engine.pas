@@ -3,8 +3,7 @@ unit Octopus.Engine;
 interface
 
 uses
-  Octopus.Process,
-  Octopus.Process.Instance;
+  Octopus.Process;
 
 type
   TWorkflowEngine = class

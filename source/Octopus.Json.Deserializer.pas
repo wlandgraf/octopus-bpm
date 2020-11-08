@@ -45,12 +45,6 @@ begin
     end;
 
   FDeserializer := TJsonDeserializer.Create(FConverters, False);
-//  FDeserializer.OnObjectCreated :=
-//    procedure(Obj: TObject)
-//    begin
-//      if Obj is TWorkflowProcess then
-//        FProcess := TWorkflowProcess(Obj);
-//    end;
 end;
 
 destructor TWorkflowDeserializer.Destroy;
@@ -60,21 +54,6 @@ begin
   FDeserializer.Free;
   inherited;
 end;
-
-//class function TWorkflowDeserializer.InstanceFromJson(Json: string; Process: TWorkflowProcess): TProcessInstance;
-//var
-//  stream: TStringStream;
-//  deserializer: TWorkflowDeserializer;
-//begin
-//  stream := TStringStream.Create(Json);
-//  deserializer := TWorkflowDeserializer.Create(stream);
-//  try
-//    result := deserializer.ReadInstance(Process);
-//  finally
-//    stream.Free;
-//    deserializer.Free;
-//  end;
-//end;
 
 class function TWorkflowDeserializer.ProcessFromJson(Json: string): TWorkflowProcess;
 var
@@ -90,12 +69,6 @@ begin
     deserializer.Free;
   end;
 end;
-
-//function TWorkflowDeserializer.ReadInstance(Process: TWorkflowProcess): TProcessInstance;
-//begin
-//  FProcess := Process;
-//  result := FDeserializer.Read<TProcessInstance>;
-//end;
 
 function TWorkflowDeserializer.ReadProcess: TWorkflowProcess;
 var

@@ -1,0 +1,57 @@
+package octopus;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  dbrtl,
+  tmsbcl,
+  aurelius;
+
+contains
+  Octopus.Activities.Task in '..\..\source\Octopus.Activities.Task.pas',
+  Octopus.DataTypes in '..\..\source\Octopus.DataTypes.pas',
+  Octopus.Engine in '..\..\source\Octopus.Engine.pas',
+  Octopus.Engine.Runner in '..\..\source\Octopus.Engine.Runner.pas',
+  Octopus.Entities in '..\..\source\Octopus.Entities.pas',
+  Octopus.Global in '..\..\source\Octopus.Global.pas',
+  Octopus.Json.Converters in '..\..\source\Octopus.Json.Converters.pas',
+  Octopus.Json.Deserializer in '..\..\source\Octopus.Json.Deserializer.pas',
+  Octopus.Json.ObjectConverter in '..\..\source\Octopus.Json.ObjectConverter.pas',
+  Octopus.Json.Serializer in '..\..\source\Octopus.Json.Serializer.pas',
+  Octopus.Persistence.Instance in '..\..\source\Octopus.Persistence.Instance.pas',
+  Octopus.Process.Activities in '..\..\source\Octopus.Process.Activities.pas',
+  Octopus.Process.Builder in '..\..\source\Octopus.Process.Builder.pas',
+  Octopus.Process.Events in '..\..\source\Octopus.Process.Events.pas',
+  Octopus.Process.Gateways in '..\..\source\Octopus.Process.Gateways.pas',
+  Octopus.Process in '..\..\source\Octopus.Process.pas',
+  Octopus.Repository in '..\..\source\Octopus.Repository.pas',
+  Octopus.Resources in '..\..\source\Octopus.Resources.pas',
+  Octopus.Validator in '..\..\source\Octopus.Validator.pas';
+
+end.

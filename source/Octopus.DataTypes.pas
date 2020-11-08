@@ -23,7 +23,7 @@ type
     class var
       FDefault: TOctopusDataTypes;
   private
-    FRegisteredTypes: TObjectDictionary<string,TOctopusDataType>;
+    FRegisteredTypes: TObjectDictionary<string, TOctopusDataType>;
     function NativeTypeName(AType: PTypeInfo): string;
     procedure RegisterDefaultDataTypes;
   public

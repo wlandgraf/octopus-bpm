@@ -71,3 +71,4 @@ __recovery/
 /tests/persistence/TestPersistence.res
 /tests/serialization/TestSerialization.res
 tests/persistence/octopus.db
+/packages/dsydney/octopus.res
