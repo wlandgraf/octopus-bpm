@@ -34,10 +34,10 @@ type
     function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure RemoveToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
-    function GetVariable(Name: string): TValue;
-    procedure SetVariable(Name: string; Value: TValue);
-    function GetLocalVariable(Token: TToken; Name: string): TValue;
-    procedure SetLocalVariable(Token: TToken; Name: string; Value: TValue);
+    function GetVariable(const Name: string): TValue;
+    procedure SetVariable(const Name: string; const Value: TValue);
+    function GetLocalVariable(Token: TToken; const Name: string): TValue;
+    procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
 implementation
@@ -92,7 +92,7 @@ begin
   inherited;
 end;
 
-function TProcessInstance.GetLocalVariable(Token: TToken; Name: string): TValue;
+function TProcessInstance.GetLocalVariable(Token: TToken; const Name: string): TValue;
 var
   tokenEnt: TOctopusInstanceToken;
   varEnt: TOctopusInstanceVariable;
@@ -129,7 +129,7 @@ begin
     end;
 end;
 
-function TProcessInstance.GetVariable(Name: string): TValue;
+function TProcessInstance.GetVariable(const Name: string): TValue;
 var
   varEnt: TOctopusInstanceVariable;
 begin
@@ -216,7 +216,7 @@ begin
   FManager.SaveOrUpdate(InstanceVar);
 end;
 
-procedure TProcessInstance.SetLocalVariable(Token: TToken; Name: string; Value: TValue);
+procedure TProcessInstance.SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
 var
   tokenEnt: TOctopusInstanceToken;
   varEnt: TOctopusInstanceVariable;
@@ -241,7 +241,7 @@ begin
   end;
 end;
 
-procedure TProcessInstance.SetVariable(Name: string; Value: TValue);
+procedure TProcessInstance.SetVariable(const Name: string; const Value: TValue);
 var
   varEnt: TOctopusInstanceVariable;
 begin

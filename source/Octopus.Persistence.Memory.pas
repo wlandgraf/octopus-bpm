@@ -1,4 +1,4 @@
-unit MemoryInstanceData;
+unit Octopus.Persistence.Memory;
 
 interface
 
@@ -10,8 +10,11 @@ uses
   Octopus.Process;
 
 type
-  TMemoryInstanceData = class;
-  TInstanceVar = class;
+  TInstanceVar = class
+    Name: string;
+    Value: TValue;
+    Token: TToken;
+  end;
 
   TMemoryInstanceData = class(TSingletonImplementation, IProcessInstanceData)
   private
@@ -23,6 +26,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+  public
+    { IProcessInstanceData methods }
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function CountTokens: integer;
@@ -30,17 +35,12 @@ type
     function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure RemoveToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
-    function GetVariable(Name: string): TValue;
-    procedure SetVariable(Name: string; Value: TValue);
-    function GetLocalVariable(Token: TToken; Name: string): TValue;
-    procedure SetLocalVariable(Token: TToken; Name: string; Value: TValue);
+    function GetVariable(const Name: string): TValue;
+    procedure SetVariable(const Name: string; const Value: TValue);
+    function GetLocalVariable(Token: TToken; const Name: string): TValue;
+    procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+  public
     procedure StartInstance(Process: TWorkflowProcess);
-  end;
-
-  TInstanceVar = class
-    Name: string;
-    Value: TValue;
-    Token: TToken;
   end;
 
 implementation
@@ -85,7 +85,7 @@ begin
   inherited;
 end;
 
-function TMemoryInstanceData.GetLocalVariable(Token: TToken; Name: string): TValue;
+function TMemoryInstanceData.GetLocalVariable(Token: TToken; const Name: string): TValue;
 begin
   result := GetVarValue(Name, Token);
 end;
@@ -108,7 +108,7 @@ begin
     end;
 end;
 
-function TMemoryInstanceData.GetVariable(Name: string): TValue;
+function TMemoryInstanceData.GetVariable(const Name: string): TValue;
 begin
   result := GetVarValue(Name, nil);
 end;
@@ -142,12 +142,13 @@ begin
   end;
 end;
 
-procedure TMemoryInstanceData.SetLocalVariable(Token: TToken; Name: string; Value: TValue);
+procedure TMemoryInstanceData.SetLocalVariable(Token: TToken;
+  const Name: string; const Value: TValue);
 begin
   SetVarValue(Name, Token, Value);
 end;
 
-procedure TMemoryInstanceData.SetVariable(Name: string; Value: TValue);
+procedure TMemoryInstanceData.SetVariable(const Name: string; const Value: TValue);
 begin
   SetVarValue(Name, nil, Value);
 end;

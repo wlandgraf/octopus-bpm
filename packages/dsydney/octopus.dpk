@@ -52,6 +52,7 @@ contains
   Octopus.Process in '..\..\source\Octopus.Process.pas',
   Octopus.Repository in '..\..\source\Octopus.Repository.pas',
   Octopus.Resources in '..\..\source\Octopus.Resources.pas',
-  Octopus.Validator in '..\..\source\Octopus.Validator.pas';
+  Octopus.Validator in '..\..\source\Octopus.Validator.pas',
+  Octopus.Persistence.Memory in '..\..\source\Octopus.Persistence.Memory.pas';
 
 end.

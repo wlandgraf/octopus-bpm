@@ -22,9 +22,7 @@ type
     constructor Create(Stream: TStream);
     destructor Destroy; override;
     class function ProcessFromJson(Json: string): TWorkflowProcess;
-    //class function InstanceFromJson(Json: string; Process: TWorkflowProcess): TProcessInstance;
     function ReadProcess: TWorkflowProcess;
-    //function ReadInstance(Process: TWorkflowProcess): TProcessInstance;
     function ReadValue(ValueType: PTypeInfo): TValue;
     class function ValueFromJson(Json: string; ValueType: PTypeInfo): TValue;
   end;

@@ -65,10 +65,10 @@ type
     function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure RemoveToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
-    function GetVariable(Name: string): TValue;
-    procedure SetVariable(Name: string; Value: TValue);
-    function GetLocalVariable(Token: TToken; Name: string): TValue;
-    procedure SetLocalVariable(Token: TToken; Name: string; Value: TValue);
+    function GetVariable(const Name: string): TValue;
+    procedure SetVariable(const Name: string; const Value: TValue);
+    function GetLocalVariable(Token: TToken; const Name: string): TValue;
+    procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
   TFlowNode = class abstract(TFlowElement)
@@ -485,4 +485,5 @@ begin
 end;
 
 end.
+
 
