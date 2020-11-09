@@ -23,7 +23,7 @@ type
   private
     FPropName: string;
   public
-    constructor Create(APropName: string = '');
+    constructor Create(const APropName: string = '');
     property PropName: string read FPropName;
   end;
 
@@ -39,9 +39,9 @@ type
     constructor Create;
     destructor Destroy; override;
     function StartNode: TFlowNode;
-    function GetNode(AId: string): TFlowNode;
-    function GetTransition(AId: string): TTransition;
-    function GetVariable(AName: string): TVariable;
+    function GetNode(const AId: string): TFlowNode;
+    function GetTransition(const AId: string): TTransition;
+    function GetVariable(const AName: string): TVariable;
     property Nodes: TObjectList<TFlowNode> read FNodes;
     property Transitions: TObjectList<TTransition> read FTransitions;
     property Variables: TObjectList<TVariable> read FVariables;
@@ -58,6 +58,7 @@ type
   end;
 
   IProcessInstanceData = interface
+  ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function CountTokens: integer;
@@ -146,9 +147,9 @@ type
     constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode; APersistedTokens: TList<TToken>);
     function GetIncomingToken: TToken; overload;
     function GetIncomingToken(Transition: TTransition): TToken; overload;
-    function LastData(Variable: string): TValue; overload;
-    function LastData(ANode: TFlowNode; Variable: string): TValue; overload;
-    function LastData(NodeId, Variable: string): TValue; overload;
+    function LastData(const Variable: string): TValue; overload;
+    function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
+    function LastData(const NodeId, Variable: string): TValue; overload;
     procedure PersistToken(Token: TToken);
     property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
@@ -162,7 +163,7 @@ type
     FError: boolean;
     FMessage: string;
   public
-    constructor Create(AElement: TFlowElement; AError: boolean; AMessage: string);
+    constructor Create(AElement: TFlowElement; AError: boolean; const AMessage: string);
     property Element: TFlowElement read FElement;
     property Error: boolean read FError;
     property Message: string read FMessage;
@@ -174,7 +175,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure AddError(AElement: TFlowElement; AMessage: string);
+    procedure AddError(AElement: TFlowElement; const AMessage: string);
     property Results: TList<TValidationResult> read FResults;
   end;
 
@@ -201,7 +202,7 @@ begin
   inherited;
 end;
 
-function TWorkflowProcess.GetNode(AId: string): TFlowNode;
+function TWorkflowProcess.GetNode(const AId: string): TFlowNode;
 begin
   for result in Nodes do
     if SameText(AId, result.Id) then
@@ -209,7 +210,7 @@ begin
   result := nil;
 end;
 
-function TWorkflowProcess.GetTransition(AId: string): TTransition;
+function TWorkflowProcess.GetTransition(const AId: string): TTransition;
 begin
   for result in Transitions do
     if SameText(AId, result.Id) then
@@ -217,7 +218,7 @@ begin
   result := nil;
 end;
 
-function TWorkflowProcess.GetVariable(AName: string): TVariable;
+function TWorkflowProcess.GetVariable(const AName: string): TVariable;
 begin
   for result in Variables do
     if SameText(AName, result.Name) then
@@ -375,7 +376,7 @@ begin
   result := nil;
 end;
 
-function TExecutionContext.LastData(ANode: TFlowNode; Variable: string): TValue;
+function TExecutionContext.LastData(ANode: TFlowNode; const Variable: string): TValue;
 var
   token: TToken;
 begin
@@ -386,7 +387,7 @@ begin
     result := TValue.Empty;
 end;
 
-function TExecutionContext.LastData(NodeId, Variable: string): TValue;
+function TExecutionContext.LastData(const NodeId, Variable: string): TValue;
 begin
   result := LastData(Process.GetNode(NodeId), Variable);
 end;
@@ -406,14 +407,14 @@ begin
   result := nil;
 end;
 
-function TExecutionContext.LastData(Variable: string): TValue;
+function TExecutionContext.LastData(const Variable: string): TValue;
 begin
   result := LastData(Node, Variable);
 end;
 
 { TValidationResult }
 
-constructor TValidationResult.Create(AElement: TFlowElement; AError: boolean; AMessage: string);
+constructor TValidationResult.Create(AElement: TFlowElement; AError: boolean; const AMessage: string);
 begin
   FElement := AElement;
   FError := AError;
@@ -422,7 +423,7 @@ end;
 
 { TValidationContext }
 
-procedure TValidationContext.AddError(AElement: TFlowElement; AMessage: string);
+procedure TValidationContext.AddError(AElement: TFlowElement; const AMessage: string);
 begin
   FResults.Add(TValidationResult.Create(AElement, true, AMessage));
 end;
@@ -479,8 +480,9 @@ end;
 
 { Persistent }
 
-constructor Persistent.Create(APropName: string);
+constructor Persistent.Create(const APropName: string);
 begin
+  inherited Create;
   FPropName := APropName;
 end;
 

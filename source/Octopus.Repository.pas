@@ -12,10 +12,11 @@ uses
 
 type
   IOctopusRepository = interface
-    function CreateProcessDefinition(Name: string): string;
+  ['{7CC984E2-4BB4-4C23-886A-19C2DEE8C493}']
+    function CreateProcessDefinition(const Name: string): string;
     function ListProcessDefinitions: TList<TOctopusProcessDefinition>;
-    function GetProcessDefinition(Id: string): TWorkflowProcess;
-    procedure UpdateProcessDefinition(Id: string; Process: TWorkflowProcess);
+    function GetProcessDefinition(const Id: string): TWorkflowProcess;
+    procedure UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
   end;
 
   TOctopusRepository = class(TInterfacedObject, IOctopusRepository)
@@ -24,10 +25,10 @@ type
   public
     constructor Create(Connection: IDBConnection);
     destructor Destroy; override;
-    function CreateProcessDefinition(Name: string): string;
+    function CreateProcessDefinition(const Name: string): string;
     function ListProcessDefinitions: TList<TOctopusProcessDefinition>;
-    function GetProcessDefinition(Id: string): TWorkflowProcess;
-    procedure UpdateProcessDefinition(Id: string; Process: TWorkflowProcess);
+    function GetProcessDefinition(const Id: string): TWorkflowProcess;
+    procedure UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
   end;
 
 implementation
@@ -43,13 +44,14 @@ begin
   FManager := TObjectManager.Create(Connection, TMappingExplorer.Get(OctopusModel));
 end;
 
-function TOctopusRepository.CreateProcessDefinition(Name: string): string;
+function TOctopusRepository.CreateProcessDefinition(const Name: string): string;
 var
   def: TOctopusProcessDefinition;
 begin
   def := TOctopusProcessDefinition.Create;
   def.Name := Name;
   FManager.Save(def);
+  Result := def.Id;
 end;
 
 destructor TOctopusRepository.Destroy;
@@ -58,7 +60,7 @@ begin
   inherited;
 end;
 
-function TOctopusRepository.GetProcessDefinition(Id: string): TWorkflowProcess;
+function TOctopusRepository.GetProcessDefinition(const Id: string): TWorkflowProcess;
 var
   def: TOctopusProcessDefinition;
 begin
@@ -74,7 +76,7 @@ begin
   result := FManager.Find<TOctopusProcessDefinition>.List;
 end;
 
-procedure TOctopusRepository.UpdateProcessDefinition(Id: string; Process: TWorkflowProcess);
+procedure TOctopusRepository.UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
 var
   def: TOctopusProcessDefinition;
 begin

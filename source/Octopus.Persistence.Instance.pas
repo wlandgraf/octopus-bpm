@@ -25,7 +25,7 @@ type
     function TokenFromEntity(InstanceToken: TOctopusInstanceToken): TToken;
     function VariableValue(InstanceVar: TOctopusInstanceVariable): TValue;
   public
-    constructor Create(Connection: IDBConnection; Process: TWorkflowProcess; InstanceId: string);
+    constructor Create(Connection: IDBConnection; Process: TWorkflowProcess; const InstanceId: string);
     destructor Destroy; override;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
@@ -74,7 +74,7 @@ begin
   result := FActiveTokens.Count;
 end;
 
-constructor TProcessInstance.Create(Connection: IDBConnection; Process: TWorkflowProcess; InstanceId: string);
+constructor TProcessInstance.Create(Connection: IDBConnection; Process: TWorkflowProcess; const InstanceId: string);
 begin
   FManager := TObjectManager.Create(Connection, TMappingExplorer.Get(OctopusModel));
   FActiveTokens := TDictionary<TToken,TOctopusInstanceToken>.Create;

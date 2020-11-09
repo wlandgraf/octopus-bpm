@@ -33,9 +33,9 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure RegisterType(DataType: TOctopusDataType);
-    function Find(Name: string): TOctopusDataType; overload;
+    function Find(const Name: string): TOctopusDataType; overload;
     function Find(NativeType: PTypeInfo): TOctopusDataType; overload;
-    function Get(Name: string): TOctopusDataType; overload;
+    function Get(const Name: string): TOctopusDataType; overload;
     function Get(NativeType: PTypeInfo): TOctopusDataType; overload;
   end;
 
@@ -90,7 +90,7 @@ begin
   inherited;
 end;
 
-function TOctopusDataTypes.Find(Name: string): TOctopusDataType;
+function TOctopusDataTypes.Find(const Name: string): TOctopusDataType;
 begin
   FRegisteredTypes.TryGetValue(Name, result);
 end;
@@ -105,7 +105,7 @@ begin
   result := nil;
 end;
 
-function TOctopusDataTypes.Get(Name: string): TOctopusDataType;
+function TOctopusDataTypes.Get(const Name: string): TOctopusDataType;
 begin
   result := Find(Name);
   if result = nil then
@@ -155,6 +155,7 @@ end;
 
 constructor TOctopusString.Create;
 begin
+  inherited Create;
   Name := 'string';
   NativeType := TypeInfo(string);
 end;
@@ -163,6 +164,7 @@ end;
 
 constructor TOctopusInteger.Create;
 begin
+  inherited Create;
   Name := 'integer';
   NativeType := TypeInfo(integer);
 end;
@@ -171,6 +173,7 @@ end;
 
 constructor TOctopusBoolean.Create;
 begin
+  inherited Create;
   Name := 'boolean';
   NativeType := TypeInfo(boolean);
 end;
@@ -179,6 +182,7 @@ end;
 
 constructor TOctopusDouble.Create;
 begin
+  inherited Create;
   Name := 'double';
   NativeType := TypeInfo(double);
 end;
@@ -187,6 +191,7 @@ end;
 
 constructor TOctopusExtended.Create;
 begin
+  inherited Create;
   Name := 'extended';
   NativeType := TypeInfo(extended);
 end;

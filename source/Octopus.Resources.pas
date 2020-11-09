@@ -19,7 +19,6 @@ resourcestring
   SErrorProcessNotAssigned       = 'Process not assigned';
   SErrorStartEventIncoming       = 'Incoming transition not allowed in start events';
   SErrorUnsupportedDataType      = 'Unsupported datatype: %s';
-  SErrorVariableNotFound         = 'Variable "%s" not found';
 
 implementation
 

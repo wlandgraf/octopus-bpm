@@ -32,7 +32,7 @@ type
     function AddTransition(Source, Target: TFlowNode): TTransition;
     function AddStartEvent: TStartEvent;
     function AddEndEvent: TEndEvent;
-    function AddVariable(AName: string; ADefaultValue: TValue): TVariable;
+    function AddVariable(const AName: string; ADefaultValue: TValue): TVariable;
 
     // fluent interface methods
     function Activity(AClass: TActivityClass): TProcessBuilder; overload;
@@ -42,16 +42,16 @@ type
     function ExclusiveGateway: TProcessBuilder;
     function Get(out ANode: TFlowNode): TProcessBuilder;
     function GotoElement(AElement: TFlowElement): TProcessBuilder; overload;
-    function GotoElement(AId: string): TProcessBuilder; overload;
+    function GotoElement(const AId: string): TProcessBuilder; overload;
     function GotoLastGateway: TProcessBuilder;
-    function Id(AId: string): TProcessBuilder;
+    function Id(const AId: string): TProcessBuilder;
     function InclusiveGateway: TProcessBuilder;
     function LinkTo(ANode: TFlowNode): TProcessBuilder; overload;
-    function LinkTo(ElementId: string): TProcessBuilder; overload;
+    function LinkTo(const ElementId: string): TProcessBuilder; overload;
     function ParallelGateway: TProcessBuilder;
     function StartEvent: TProcessBuilder;
-    function Variable(AName: string): TProcessBuilder; overload;
-    function Variable(AName: string; ADefaultValue: TValue): TProcessBuilder; overload;
+    function Variable(const AName: string): TProcessBuilder; overload;
+    function Variable(const AName: string; ADefaultValue: TValue): TProcessBuilder; overload;
   end;
 
 implementation
@@ -91,7 +91,7 @@ begin
   FProcess.Transitions.Add(result);
 end;
 
-function TProcessBuilder.AddVariable(AName: string; ADefaultValue: TValue): TVariable;
+function TProcessBuilder.AddVariable(const AName: string; ADefaultValue: TValue): TVariable;
 begin
   result := TVariable.Create;
   result.Name := AName;
@@ -169,7 +169,7 @@ begin
     raise Exception.Create(SBuilderCurrentTransitionError);
 end;
 
-function TProcessBuilder.GotoElement(AId: string): TProcessBuilder;
+function TProcessBuilder.GotoElement(const AId: string): TProcessBuilder;
 begin
   if Assigned(FElement) then
     if SameText(FElement.Id, AId) then
@@ -199,7 +199,7 @@ begin
   result := nil;
 end;
 
-function TProcessBuilder.Id(AId: string): TProcessBuilder;
+function TProcessBuilder.Id(const AId: string): TProcessBuilder;
 begin
   if Assigned(FElement) then
     FElement.Id := AId;
@@ -211,7 +211,7 @@ begin
   result := BuildItem(AddNode(TInclusiveGateway.Create), true);
 end;
 
-function TProcessBuilder.LinkTo(ElementId: string): TProcessBuilder;
+function TProcessBuilder.LinkTo(const ElementId: string): TProcessBuilder;
 var
   node: TFlowNode;
 begin
@@ -237,12 +237,12 @@ begin
   result := BuildItem(AddStartEvent, false);
 end;
 
-function TProcessBuilder.Variable(AName: string): TProcessBuilder;
+function TProcessBuilder.Variable(const AName: string): TProcessBuilder;
 begin
   result := Variable(AName, TValue.Empty);
 end;
 
-function TProcessBuilder.Variable(AName: string; ADefaultValue: TValue): TProcessBuilder;
+function TProcessBuilder.Variable(const AName: string; ADefaultValue: TValue): TProcessBuilder;
 begin
   AddVariable(AName, ADefaultValue);
   result := Self;

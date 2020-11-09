@@ -21,10 +21,10 @@ type
   public
     constructor Create(Stream: TStream);
     destructor Destroy; override;
-    class function ProcessFromJson(Json: string): TWorkflowProcess;
+    class function ProcessFromJson(const Json: string): TWorkflowProcess;
     function ReadProcess: TWorkflowProcess;
     function ReadValue(ValueType: PTypeInfo): TValue;
-    class function ValueFromJson(Json: string; ValueType: PTypeInfo): TValue;
+    class function ValueFromJson(const Json: string; ValueType: PTypeInfo): TValue;
   end;
 
 implementation
@@ -53,7 +53,7 @@ begin
   inherited;
 end;
 
-class function TWorkflowDeserializer.ProcessFromJson(Json: string): TWorkflowProcess;
+class function TWorkflowDeserializer.ProcessFromJson(const Json: string): TWorkflowProcess;
 var
   stream: TStringStream;
   deserializer: TWorkflowDeserializer;
@@ -89,7 +89,7 @@ begin
   FDeserializer.Read(FReader, Result, ValueType);
 end;
 
-class function TWorkflowDeserializer.ValueFromJson(Json: string; ValueType: PTypeInfo): TValue;
+class function TWorkflowDeserializer.ValueFromJson(const Json: string; ValueType: PTypeInfo): TValue;
 var
   stream: TStringStream;
   deserializer: TWorkflowDeserializer;

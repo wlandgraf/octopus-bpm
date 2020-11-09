@@ -21,8 +21,8 @@ type
     FTokens: TObjectList<TToken>;
     FRemovedTokens: TObjectList<TToken>;
     FVariables: TObjectList<TInstanceVar>;
-    function GetVarValue(Name: string; Token: TToken): TValue;
-    procedure SetVarValue(Name: string; Token: TToken; Value: TValue);
+    function GetVarValue(const Name: string; Token: TToken): TValue;
+    procedure SetVarValue(const Name: string; Token: TToken; Value: TValue);
   public
     constructor Create;
     destructor Destroy; override;
@@ -113,7 +113,7 @@ begin
   result := GetVarValue(Name, nil);
 end;
 
-function TMemoryInstanceData.GetVarValue(Name: string; Token: TToken): TValue;
+function TMemoryInstanceData.GetVarValue(const Name: string; Token: TToken): TValue;
 var
   ivar: TInstanceVar;
 begin
@@ -153,7 +153,7 @@ begin
   SetVarValue(Name, nil, Value);
 end;
 
-procedure TMemoryInstanceData.SetVarValue(Name: string; Token: TToken; Value: TValue);
+procedure TMemoryInstanceData.SetVarValue(const Name: string; Token: TToken; Value: TValue);
 var
   ivar: TInstanceVar;
 begin

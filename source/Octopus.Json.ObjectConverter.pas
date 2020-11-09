@@ -35,7 +35,7 @@ type
     procedure WriteProperties(AObject: TObject; Writer: TJsonWriter);
     procedure WriteElementId(Writer: TJsonWriter; Element: TFlowElement);
   protected
-    function GetProcessElement(AId: string): TFlowElement;
+    function GetProcessElement(const AId: string): TFlowElement;
     function ReadProperty(const PropName: string; AObject: TObject; Reader: TJsonReader): boolean; virtual;
     function WriteProperty(const PropName: string; AObject: TObject; Writer: TJsonWriter): boolean; virtual;
     property Context: TRttiContext read FContext;
@@ -118,7 +118,7 @@ begin
     result := nil;
 end;
 
-function TOctopusObjectConverter.GetProcessElement(AId: string): TFlowElement;
+function TOctopusObjectConverter.GetProcessElement(const AId: string): TFlowElement;
 begin
   result := Factory.GetProcess.GetNode(AId);
   if result = nil then

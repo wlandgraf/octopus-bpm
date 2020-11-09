@@ -27,10 +27,10 @@ type
     FError: boolean;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
-    function GetVariable(Name: string): TValue;
-    procedure SetVariable(Name: string; Value: TValue);
-    function GetLocalVariable(Name: string): TValue;
-    procedure SetLocalVariable(Name: string; Value: TValue);
+    function GetVariable(const Name: string): TValue;
+    procedure SetVariable(const Name: string; Value: TValue);
+    function GetLocalVariable(const Name: string): TValue;
+    procedure SetLocalVariable(const Name: string; Value: TValue);
     property Token: TToken read FToken;
     property Done: boolean read FDone write FDone;
     property Error: boolean read FError write FError;
@@ -126,22 +126,22 @@ begin
   FError := false;
 end;
 
-function TActivityExecutionContext.GetLocalVariable(Name: string): TValue;
+function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
 begin
   result := FInstance.GetLocalVariable(Token, Name);
 end;
 
-function TActivityExecutionContext.GetVariable(Name: string): TValue;
+function TActivityExecutionContext.GetVariable(const Name: string): TValue;
 begin
   result := FInstance.GetVariable(Name)
 end;
 
-procedure TActivityExecutionContext.SetLocalVariable(Name: string; Value: TValue);
+procedure TActivityExecutionContext.SetLocalVariable(const Name: string; Value: TValue);
 begin
   FInstance.SetLocalVariable(Token, Name, Value);
 end;
 
-procedure TActivityExecutionContext.SetVariable(Name: string; Value: TValue);
+procedure TActivityExecutionContext.SetVariable(const Name: string; Value: TValue);
 begin
   FInstance.SetVariable(Name, Value);
 end;
