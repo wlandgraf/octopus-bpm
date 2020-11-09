@@ -4,6 +4,7 @@ interface
 
 uses
   System.SysUtils,
+  System.TypInfo,
   Generics.Collections,
   System.Rtti,
   Octopus.DataTypes;

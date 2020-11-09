@@ -4,6 +4,7 @@ interface
 
 uses
   System.SysUtils,
+  System.TypInfo,
   System.Rtti,
   Generics.Collections,
   Bcl.Collections,
