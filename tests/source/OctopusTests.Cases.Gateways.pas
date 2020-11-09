@@ -1,36 +1,34 @@
-unit TestGateways;
+unit OctopusTests.Cases.Gateways;
 
 interface
 
 uses
-  DUnitX.TestFramework,
   Generics.Collections,
-  OctopusTestCase,
+  OctopusTests.TestCase,
   Octopus.Process,
   Octopus.Process.Activities,
   Octopus.Engine.Runner;
 
 type
-  [TestFixture]
   TTestGateways = class(TOctopusTestCase)
   private
     function AlwaysTrue(Context: TExecutionContext): boolean;
     function AlwaysFalse(Context: TExecutionContext): boolean;
-  public
-    [Test] procedure Exclusive;
-    [Test] procedure ExclusiveCondition;
-    [Test] procedure ExclusiveLoop;
-    [Test] procedure Parallel;
-    [Test] procedure ParallelCondition;
-    [Test] procedure ParallelMerge;
-    [Test] procedure InclusiveCondition;
-    [Test] procedure InclusiveMerge;
+  published
+    procedure Exclusive;
+    procedure ExclusiveCondition;
+    procedure ExclusiveLoop;
+    procedure Parallel;
+    procedure ParallelCondition;
+    procedure ParallelMerge;
+    procedure InclusiveCondition;
+    procedure InclusiveMerge;
   end;
 
 implementation
 
 uses
-  OctopusTestUtils,
+  OctopusTests.Utils,
   MemoryInstanceData;
 
 { TTestGateways }
@@ -77,8 +75,8 @@ begin
   RunProcess(
     procedure(Status: TRunnerStatus; Instance: IProcessInstanceData)
     begin
-      Assert.AreEqual(1, Instance.CountTokens);
-      Assert.AreEqual('trueval', Instance.GetTokens[0].Node.Id);
+      CheckEquals(1, Instance.CountTokens);
+      CheckEquals('trueval', Instance.GetTokens[0].Node.Id);
     end
   );
 end;
@@ -136,7 +134,7 @@ begin
   RunProcess(
     procedure(Status: TRunnerStatus; Instance: IProcessInstanceData)
     begin
-      Assert.AreEqual(11, Instance.GetVariable('loop').AsInteger);
+      CheckEquals(11, Instance.GetVariable('loop').AsInteger);
     end
   );
 end;
@@ -224,30 +222,30 @@ begin
 
     // run #1: two parallel activities
     RunInstance(instance);
-    Assert.AreEqual(2, instance.CountTokens);
+    CheckEquals(2, instance.CountTokens);
     tokens := instance.GetTokens;
-    Assert.AreNotEqual(tokens[0].Transition, tokens[1].Transition);
+    Check(tokens[0].Transition <> tokens[1].Transition, 'transitions not equal');
 
     // run #2: act1 done, inclusive gateway must wait for act2
     instance.SetVariable('done1', true);
     RunInstance(instance);
-    Assert.AreEqual(2, instance.CountTokens);
+    CheckEquals(2, instance.CountTokens);
     tokens := instance.GetTokens;
     for token in tokens do
-      Assert.IsTrue((token.Node.Id = 'act2') or (token.Node.Id = 'inc'));
+      Check((token.Node.Id = 'act2') or (token.Node.Id = 'inc'));
 
     // run #3: act2 done, inclusive gateway must trigger and back to act1
     instance.SetVariable('done1', false);
     instance.SetVariable('done2', true);
     RunInstance(instance);
-    Assert.AreEqual(1, instance.CountTokens); // running
-    Assert.AreEqual('act1', instance.GetTokens[0].Node.Id);
+    CheckEquals(1, instance.CountTokens); // running
+    CheckEquals('act1', instance.GetTokens[0].Node.Id);
 
     // run #4: act1 done, inclusive gateway must trigger (nothing to wait) and finish
     instance.SetVariable('done1', true);
     instance.SetVariable('finish', true);
     RunInstance(instance);
-    Assert.AreEqual(0, instance.CountTokens); // finished
+    CheckEquals(0, instance.CountTokens); // finished
   finally
     instance.Free;
   end;
@@ -333,25 +331,27 @@ begin
 
     // run #1: two parallel activities
     RunInstance(instance);
-    Assert.AreEqual(2, instance.CountTokens); // running
+    CheckEquals(2, instance.CountTokens); // running
 
     // run #2: act1 done, parallel gateway must wait for act2
     instance.SetVariable('done1', true);
     RunInstance(instance);
-    Assert.AreEqual(2, instance.CountTokens);
+    CheckEquals(2, instance.CountTokens);
     tokens := instance.GetTokens;
     for token in tokens do
-      Assert.IsTrue((token.Node.Id = 'act2') or (token.Node.Id = 'merge'));
+      Check((token.Node.Id = 'act2') or (token.Node.Id = 'merge'));
 
     // run #3: act2 done, parallel gateway must trigger
     instance.SetVariable('done2', true);
     RunInstance(instance);
-    Assert.AreEqual(1, instance.CountTokens);
-    Assert.AreEqual('last', instance.GetTokens[0].Node.Id);
+    CheckEquals(1, instance.CountTokens);
+    CheckEquals('last', instance.GetTokens[0].Node.Id);
   finally
     instance.Free;
   end;
 end;
 
+initialization
+  RegisterOctopusTest(TTestGateways);
 end.
 

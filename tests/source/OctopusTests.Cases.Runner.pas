@@ -1,38 +1,35 @@
-unit TestRunner;
+unit OctopusTests.Cases.Runner;
 
 interface
 
 uses
   System.SysUtils,
-  DUnitX.TestFramework,
-  OctopusTestCase,
+  OctopusTests.TestCase,
   Octopus.Process,
   Octopus.Process.Activities,
   Octopus.Engine.Runner;
 
 type
-  [TestFixture]
   TTestRunner = class(TOctopusTestCase)
   private
     procedure LogVariable(AName: string);
-  public
-    [Test] procedure RunEmpty;
-    [Test] procedure RunError;
-    [Test] procedure RunStop;
-    [Test] procedure RunPersist;
+  published
+    procedure RunEmpty;
+    procedure RunError;
+    procedure RunStop;
+    procedure RunPersist;
   end;
 
 implementation
 
 uses
-  OctopusTestUtils,
   MemoryInstanceData;
 
 { TTestRunner }
 
 procedure TTestRunner.LogVariable(AName: string);
 begin
-  TDUnitX.CurrentRunner.Log(TLogLevel.Information, Format('%s = %s', [AName, Process.GetVariable(AName).DefaultValue.ToString]));
+//  Status(Format('%s = %s', [AName, Process.GetVariable(AName).DefaultValue.ToString]));
 end;
 
 procedure TTestRunner.RunEmpty;
@@ -80,18 +77,18 @@ begin
 
     // not done, persist
     RunInstance(instance);
-    Assert.AreEqual(1, instance.CountTokens); // running
+    CheckEquals(1, instance.CountTokens); // running
     LogVariable('done');
 
     // not done, persist
     RunInstance(instance);
-    Assert.AreEqual(1, instance.CountTokens); // running
+    CheckEquals(1, instance.CountTokens); // running
     LogVariable('done');
 
     // done, finish
     instance.SetVariable('done', true);
     RunInstance(instance);
-    Assert.AreEqual(0, instance.CountTokens); // finished
+    CheckEquals(0, instance.CountTokens); // finished
   finally
     instance.Free;
   end;
@@ -102,11 +99,18 @@ begin
   { (start) -> [test] -> (end) }
   Builder
     .StartEvent
-    .Activity(TTestUtils.PersistedActivity)
+    .Activity(TAnonymousActivity.Create(
+      procedure(Context: TActivityExecutionContext)
+      begin
+        Context.Done := false;
+      end
+    ))
     .EndEvent;
 
   RunProcess(TRunnerStatus.Processed, 1);
 end;
 
+initialization
+  RegisterOctopusTest(TTestRunner);
 end.
 

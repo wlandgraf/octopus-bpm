@@ -1,4 +1,4 @@
-unit OctopusTestCase;
+unit OctopusTests.TestCase;
 
 interface
 
@@ -6,18 +6,28 @@ uses
   System.SysUtils,
   System.Classes,
   System.Diagnostics,
-  DUnitX.TestFramework,
+  {$IFDEF USE_BIZ}
+  BizTest.Framework,
+  BizTest.TestCase,
+  {$ELSE}
+  TestFramework,
+  {$ENDIF}
   Octopus.Process,
   Octopus.Process.Builder,
   Octopus.Process.Activities,
   Octopus.Engine.Runner;
 
 type
+  {$IFNDEF USE_BIZ}
+  TBizTestCase = TTestCase;
+  TBizTestCaseClass = class of TTestCase;
+  {$ENDIF}
+
   TOctopusTestCase = class;
 
   TRunAssertionProc = reference to procedure(Status: TRunnerStatus; Instance: IProcessInstanceData);
 
-  TOctopusTestCase = class
+  TOctopusTestCase = class(TBizTestCase)
   private
     FProcess: TWorkflowProcess;
     FBuilder: TProcessBuilder;
@@ -28,16 +38,21 @@ type
     property Process: TWorkflowProcess read FProcess;
     property Builder: TProcessBuilder read FBuilder;
   public
-    [Setup]
-    procedure Setup; virtual;
-    [TearDown]
-    procedure TearDown; virtual;
+    procedure SetUp; override;
+    procedure TearDown; override;
   end;
+
+procedure RegisterOctopusTest(ATestClass: TBizTestCaseClass);
 
 implementation
 
 uses
   MemoryInstanceData;
+
+procedure RegisterOctopusTest(ATestClass: TBizTestCaseClass);
+begin
+  RegisterTest('Octopus', ATestClass.Suite);
+end;
 
 { TOctopusTestCase }
 
@@ -72,9 +87,9 @@ begin
   RunProcess(
     procedure(Status: TRunnerStatus; Instance: IProcessInstanceData)
     begin
-      Assert.AreEqual(ExpectedStatus, Status);
+      CheckEquals(Ord(ExpectedStatus), Ord(Status));
       if ExpectedTokens >= 0 then
-        Assert.AreEqual(ExpectedTokens, instance.CountTokens);
+        CheckEquals(ExpectedTokens, instance.CountTokens);
     end
   );
 end;

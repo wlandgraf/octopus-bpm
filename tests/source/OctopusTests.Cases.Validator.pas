@@ -1,28 +1,25 @@
-unit TestValidator;
+unit OctopusTests.Cases.Validator;
 
 interface
 
 uses
-  DUnitX.TestFramework,
-  OctopusTestCase,
+  OctopusTests.TestCase,
   Octopus.Validator;
 
 type
-  [TestFixture]
   TTestValidator = class(TOctopusTestCase)
   private
     FValidator: TWorkflowValidator;
-    procedure Check(IsValid: boolean);
+    procedure CheckValid(IsValid: boolean);
   public
-    [Setup]
-    procedure Setup; override;
-    [TearDown]
+    procedure SetUp; override;
     procedure TearDown; override;
-    [Test] procedure EmptyProcess;
-    [Test] procedure EndEvent;
-    [Test] procedure StartEvent;
-    [Test] procedure EventTransitions;
-    [Test] procedure StartEnd;
+  published
+    procedure EmptyProcess;
+    procedure EndEvent;
+    procedure StartEvent;
+    procedure EventTransitions;
+    procedure StartEnd;
   end;
 
 implementation
@@ -34,30 +31,30 @@ uses
 
 { TTestValidator }
 
-procedure TTestValidator.Check(IsValid: boolean);
+procedure TTestValidator.CheckValid(IsValid: boolean);
 var
   res: TValidationResult;
 begin
-  Assert.AreEqual(IsValid, FValidator.Check(Process));
+  CheckEquals(IsValid, FValidator.Check(Process));
 
   for res in FValidator.Results do
   begin
     if res.Error then
-      TDUnitX.CurrentRunner.Log(TLogLevel.Error, res.Message)
+      Status('Error: ' + res.Message)
     else
-      TDUnitX.CurrentRunner.Log(TLogLevel.Warning, res.Message);
+      Status('Warning: ' + res.Message);
   end;
 end;
 
 procedure TTestValidator.EmptyProcess;
 begin
-  Check(false);
+  CheckValid(false);
 end;
 
 procedure TTestValidator.EndEvent;
 begin
   Process.Nodes.Add(TEndEvent.Create);
-  Check(false);
+  CheckValid(false);
 end;
 
 procedure TTestValidator.EventTransitions;
@@ -69,21 +66,21 @@ begin
   Process.Nodes.Add(startEvent);
   endEvent :=  TEndEvent.Create;
   Process.Nodes.Add(endEvent);
-  Check(false); // no transitions
+  CheckValid(false); // no transitions
 
   transition := TTransition.Create;
   Process.Transitions.Add(transition);
   transition.Source := startEvent;
   transition.Target := endEvent;
-  Check(true); // start -> end transition
+  CheckValid(true); // start -> end transition
 
   transition := TTransition.Create;
   Process.Transitions.Add(transition);
-  Check(false); // untied transition
+  CheckValid(false); // untied transition
 
   transition.Source := endEvent;
   transition.Target := startEvent;
-  Check(false); // start -> end -> start
+  CheckValid(false); // start -> end -> start
 end;
 
 procedure TTestValidator.Setup;
@@ -95,13 +92,13 @@ end;
 procedure TTestValidator.StartEnd;
 begin
   Builder.StartEvent.EndEvent;
-  Check(true);
+  CheckValid(true);
 end;
 
 procedure TTestValidator.StartEvent;
 begin
   Process.Nodes.Add(TStartEvent.Create);
-  Check(false);
+  CheckValid(false);
 end;
 
 procedure TTestValidator.TearDown;
@@ -110,5 +107,7 @@ begin
   inherited;
 end;
 
+initialization
+  RegisterOctopusTest(TTestValidator);
 end.
 

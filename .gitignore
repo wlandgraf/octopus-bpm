@@ -72,3 +72,4 @@ __recovery/
 /tests/serialization/TestSerialization.res
 tests/persistence/octopus.db
 /packages/dsydney/octopus.res
+Win32/
