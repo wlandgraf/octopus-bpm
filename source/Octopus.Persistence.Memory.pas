@@ -16,7 +16,7 @@ type
     Token: TToken;
   end;
 
-  TMemoryInstanceData = class(TSingletonImplementation, IProcessInstanceData)
+  TMemoryInstanceData = class(TInterfacedObject, IProcessInstanceData)
   private
     FTokens: TObjectList<TToken>;
     FRemovedTokens: TObjectList<TToken>;
@@ -39,8 +39,6 @@ type
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetLocalVariable(Token: TToken; const Name: string): TValue;
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
-  public
-    procedure StartInstance(Process: TWorkflowProcess);
   end;
 
 implementation
@@ -169,20 +167,6 @@ begin
   ivar.Value := Value;
   ivar.Token := Token;
   FVariables.Add(ivar);
-end;
-
-procedure TMemoryInstanceData.StartInstance(Process: TWorkflowProcess);
-var
-  variable: TVariable;
-begin
-  // process variables
-  FVariables.Clear;
-  for variable in Process.Variables do
-    SetVariable(variable.Name, variable.DefaultValue);
-
-   // start token
-  FTokens.Clear;
-  AddToken(Process.StartNode);
 end;
 
 end.

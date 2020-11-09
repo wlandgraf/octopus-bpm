@@ -28,6 +28,8 @@ type
     property PropName: string read FPropName;
   end;
 
+  IProcessInstanceData = interface;
+
   TWorkflowProcess = class
   private
     [Persistent]
@@ -39,6 +41,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure InitInstance(Instance: IProcessInstanceData);
     function StartNode: TFlowNode;
     function GetNode(const AId: string): TFlowNode;
     function GetTransition(const AId: string): TTransition;
@@ -225,6 +228,18 @@ begin
     if SameText(AName, result.Name) then
       exit;
   result := nil;
+end;
+
+procedure TWorkflowProcess.InitInstance(Instance: IProcessInstanceData);
+var
+  variable: TVariable;
+begin
+  // process variables
+  for variable in Self.Variables do
+    Instance.SetVariable(variable.Name, variable.DefaultValue);
+
+   // start token
+  Instance.AddToken(Self.StartNode);
 end;
 
 function TWorkflowProcess.StartNode: TFlowNode;
