@@ -1,4 +1,4 @@
-unit Octopus.Persistence.Instance;
+unit Octopus.Persistence.Aurelius;
 
 interface
 
@@ -13,7 +13,7 @@ uses
   Octopus.Process;
 
 type
-  TProcessInstance = class(TInterfacedObject, IProcessInstanceData)
+  TAureliusInstanceData = class(TInterfacedObject, IProcessInstanceData)
   private
     FManager: TObjectManager;
     FInstance: TOctopusProcessInstance;
@@ -51,7 +51,7 @@ uses
 
 { TProcessInstance }
 
-procedure TProcessInstance.AddToken(Transition: TTransition);
+procedure TAureliusInstanceData.AddToken(Transition: TTransition);
 var
   token: TToken;
 begin
@@ -60,7 +60,7 @@ begin
   SaveToken(token);
 end;
 
-procedure TProcessInstance.AddToken(Node: TFlowNode);
+procedure TAureliusInstanceData.AddToken(Node: TFlowNode);
 var
   token: TToken;
 begin
@@ -69,12 +69,12 @@ begin
   SaveToken(token);
 end;
 
-function TProcessInstance.CountTokens: integer;
+function TAureliusInstanceData.CountTokens: integer;
 begin
   result := FActiveTokens.Count;
 end;
 
-constructor TProcessInstance.Create(Connection: IDBConnection; Process: TWorkflowProcess; const InstanceId: string);
+constructor TAureliusInstanceData.Create(Connection: IDBConnection; Process: TWorkflowProcess; const InstanceId: string);
 begin
   FManager := TObjectManager.Create(Connection, TMappingExplorer.Get(OctopusModel));
   FActiveTokens := TDictionary<TToken,TOctopusInstanceToken>.Create;
@@ -85,14 +85,14 @@ begin
   LoadActiveTokens;
 end;
 
-destructor TProcessInstance.Destroy;
+destructor TAureliusInstanceData.Destroy;
 begin
   FManager.Free;
   FActiveTokens.Free;
   inherited;
 end;
 
-function TProcessInstance.GetLocalVariable(Token: TToken; const Name: string): TValue;
+function TAureliusInstanceData.GetLocalVariable(Token: TToken; const Name: string): TValue;
 var
   tokenEnt: TOctopusInstanceToken;
   varEnt: TOctopusInstanceVariable;
@@ -111,12 +111,12 @@ begin
   result := TValue.Empty;
 end;
 
-function TProcessInstance.GetTokens: TArray<TToken>;
+function TAureliusInstanceData.GetTokens: TArray<TToken>;
 begin
   result := FActiveTokens.Keys.ToArray;
 end;
 
-function TProcessInstance.GetTokens(Node: TFlowNode): TArray<TToken>;
+function TAureliusInstanceData.GetTokens(Node: TFlowNode): TArray<TToken>;
 var
   token: TToken;
 begin
@@ -129,7 +129,7 @@ begin
     end;
 end;
 
-function TProcessInstance.GetVariable(const Name: string): TValue;
+function TAureliusInstanceData.GetVariable(const Name: string): TValue;
 var
   varEnt: TOctopusInstanceVariable;
 begin
@@ -145,7 +145,7 @@ begin
     result := TValue.Empty;
 end;
 
-function TProcessInstance.LastToken(Node: TFlowNode): TToken;
+function TAureliusInstanceData.LastToken(Node: TFlowNode): TToken;
 var
   tokenList: TList<TOctopusInstanceToken>;
 begin
@@ -162,7 +162,7 @@ begin
     result := nil;
 end;
 
-procedure TProcessInstance.LoadActiveTokens;
+procedure TAureliusInstanceData.LoadActiveTokens;
 var
   tokenList: TList<TOctopusInstanceToken>;
   tokenEnt: TOctopusInstanceToken;
@@ -178,7 +178,7 @@ begin
     FActiveTokens.Add(TokenFromEntity(tokenEnt), tokenEnt);
 end;
 
-procedure TProcessInstance.RemoveToken(Token: TToken);
+procedure TAureliusInstanceData.RemoveToken(Token: TToken);
 var
   tokenEnt: TOctopusInstanceToken;
 begin
@@ -190,7 +190,7 @@ begin
   end;
 end;
 
-procedure TProcessInstance.SaveToken(Token: TToken);
+procedure TAureliusInstanceData.SaveToken(Token: TToken);
 var
   tokenEnt: TOctopusInstanceToken;
 begin
@@ -204,7 +204,7 @@ begin
   FManager.Save(tokenEnt);
 end;
 
-procedure TProcessInstance.SaveVariable(InstanceVar: TOctopusInstanceVariable; Value: TValue);
+procedure TAureliusInstanceData.SaveVariable(InstanceVar: TOctopusInstanceVariable; Value: TValue);
 var
   dataType: TOctopusDataType;
 begin
@@ -216,7 +216,7 @@ begin
   FManager.SaveOrUpdate(InstanceVar);
 end;
 
-procedure TProcessInstance.SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+procedure TAureliusInstanceData.SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
 var
   tokenEnt: TOctopusInstanceToken;
   varEnt: TOctopusInstanceVariable;
@@ -241,7 +241,7 @@ begin
   end;
 end;
 
-procedure TProcessInstance.SetVariable(const Name: string; const Value: TValue);
+procedure TAureliusInstanceData.SetVariable(const Name: string; const Value: TValue);
 var
   varEnt: TOctopusInstanceVariable;
 begin
@@ -261,7 +261,7 @@ begin
   SaveVariable(varEnt, Value);
 end;
 
-function TProcessInstance.TokenFromEntity(InstanceToken: TOctopusInstanceToken): TToken;
+function TAureliusInstanceData.TokenFromEntity(InstanceToken: TOctopusInstanceToken): TToken;
 begin
   result := TToken.Create;
   if not InstanceToken.TransitionId.IsNull then
@@ -270,7 +270,7 @@ begin
     result.Node := FProcess.GetNode(InstanceToken.NodeId);
 end;
 
-function TProcessInstance.VariableValue(InstanceVar: TOctopusInstanceVariable): TValue;
+function TAureliusInstanceData.VariableValue(InstanceVar: TOctopusInstanceVariable): TValue;
 begin
   if not InstanceVar.Value.IsNull then
     result := TWorkflowDeserializer.ValueFromJson(InstanceVar.Value.AsString,

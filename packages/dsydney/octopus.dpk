@@ -44,7 +44,7 @@ contains
   Octopus.Json.Deserializer in '..\..\source\Octopus.Json.Deserializer.pas',
   Octopus.Json.ObjectConverter in '..\..\source\Octopus.Json.ObjectConverter.pas',
   Octopus.Json.Serializer in '..\..\source\Octopus.Json.Serializer.pas',
-  Octopus.Persistence.Instance in '..\..\source\Octopus.Persistence.Instance.pas',
+  Octopus.Persistence.Aurelius in '..\..\source\Octopus.Persistence.Aurelius.pas',
   Octopus.Process.Activities in '..\..\source\Octopus.Process.Activities.pas',
   Octopus.Process.Builder in '..\..\source\Octopus.Process.Builder.pas',
   Octopus.Process.Events in '..\..\source\Octopus.Process.Events.pas',

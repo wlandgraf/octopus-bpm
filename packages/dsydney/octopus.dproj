@@ -124,7 +124,7 @@
         <DCCReference Include="..\..\source\Octopus.Json.Deserializer.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.ObjectConverter.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.Serializer.pas"/>
-        <DCCReference Include="..\..\source\Octopus.Persistence.Instance.pas"/>
+        <DCCReference Include="..\..\source\Octopus.Persistence.Aurelius.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Activities.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Builder.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Events.pas"/>
