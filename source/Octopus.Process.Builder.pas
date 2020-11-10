@@ -28,6 +28,7 @@ type
   public
     constructor Create(AProcess: TWorkflowProcess);
     destructor Destroy; override;
+    class function CreateProcess: TProcessBuilder;
     function AddNode(Node: TFlowNode): TFlowNode;
     function AddTransition(Source, Target: TFlowNode): TTransition;
     function AddStartEvent: TStartEvent;
@@ -52,6 +53,7 @@ type
     function StartEvent: TProcessBuilder;
     function Variable(const AName: string): TProcessBuilder; overload;
     function Variable(const AName: string; ADefaultValue: TValue): TProcessBuilder; overload;
+    function Done: TWorkflowProcess;
   end;
 
 implementation
@@ -131,10 +133,21 @@ begin
   FItems := TObjectList<TProcessBuilder>.Create;
 end;
 
+class function TProcessBuilder.CreateProcess: TProcessBuilder;
+begin
+  Result := TProcessBuilder.Create(TWorkflowProcess.Create);
+end;
+
 destructor TProcessBuilder.Destroy;
 begin
   FItems.Free;
   inherited;
+end;
+
+function TProcessBuilder.Done: TWorkflowProcess;
+begin
+  Result := FProcess;
+  Self.Free;
 end;
 
 function TProcessBuilder.EndEvent: TProcessBuilder;

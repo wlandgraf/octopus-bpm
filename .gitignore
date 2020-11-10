@@ -73,3 +73,4 @@ __recovery/
 tests/persistence/octopus.db
 /packages/dsydney/octopus.res
 Win32/
+demos/Hello/OctopusHello.res
