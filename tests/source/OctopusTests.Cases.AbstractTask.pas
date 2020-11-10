@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  MemoryInstanceData;
+  Octopus.Persistence.Memory;
 
 { TTestAbstractTask }
 
@@ -60,7 +60,7 @@ end;
 
 procedure TTestAbstractTask.SimpleTask;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
 begin
   Builder
     .StartEvent
@@ -68,27 +68,23 @@ begin
     .EndEvent;
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
+  Process.InitInstance(instance);
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
 
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals(1, TTestTaskDB.Tasks.Count); // same task (waiting)
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals(1, TTestTaskDB.Tasks.Count); // same task (waiting)
 
-    TTestTaskDB.Tasks[0].Status := 'closed';
-    RunInstance(instance);
-    CheckEquals(0, instance.CountTokens); // finished
-  finally
-    instance.Free;
-  end;
+  TTestTaskDB.Tasks[0].Status := 'closed';
+  RunInstance(instance);
+  CheckEquals(0, instance.CountTokens); // finished
 end;
 
 procedure TTestAbstractTask.TaskEvaluateStatus;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
 begin
   Builder
     .StartEvent
@@ -108,26 +104,22 @@ begin
     .Activity(TTestTaskActivity).Id('rejected');
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
+  Process.InitInstance(instance);
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
 
-    TTestTaskDB.Tasks[0].Status := 'rejected';
+  TTestTaskDB.Tasks[0].Status := 'rejected';
 
-    RunInstance(instance);
-    CheckEquals(2, TTestTaskDB.Tasks.Count); // new task (rejected)
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals('rejected', instance.GetTokens[0].Node.Id);
-  finally
-    instance.Free;
-  end;
+  RunInstance(instance);
+  CheckEquals(2, TTestTaskDB.Tasks.Count); // new task (rejected)
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals('rejected', instance.GetTokens[0].Node.Id);
 end;
 
 procedure TTestAbstractTask.TaskEvaluateStatusLater;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
 begin
   Builder
     .StartEvent
@@ -148,21 +140,17 @@ begin
     .Activity(TTestTaskActivity).Id('rejected');
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
+  Process.InitInstance(instance);
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals(1, TTestTaskDB.Tasks.Count); // new task
 
-    TTestTaskDB.Tasks[0].Status := 'rejected';
+  TTestTaskDB.Tasks[0].Status := 'rejected';
 
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals(2, TTestTaskDB.Tasks.Count); // new task (rejected)
-    CheckEquals('rejected', instance.GetTokens[0].Node.Id);
-  finally
-    instance.Free;
-  end;
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals(2, TTestTaskDB.Tasks.Count); // new task (rejected)
+  CheckEquals('rejected', instance.GetTokens[0].Node.Id);
 end;
 
 { TTestTaskDB }

@@ -23,7 +23,7 @@ type
 implementation
 
 uses
-  MemoryInstanceData;
+  Octopus.Persistence.Memory;
 
 { TTestRunner }
 
@@ -57,7 +57,7 @@ end;
 
 procedure TTestRunner.RunPersist;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
 begin
   { (start) --> [wait until done] --> (end) }
   Builder
@@ -72,26 +72,22 @@ begin
     .EndEvent;
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
+  Process.InitInstance(instance);
 
-    // not done, persist
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    LogVariable('done');
+  // not done, persist
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  LogVariable('done');
 
-    // not done, persist
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    LogVariable('done');
+  // not done, persist
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  LogVariable('done');
 
-    // done, finish
-    instance.SetVariable('done', true);
-    RunInstance(instance);
-    CheckEquals(0, instance.CountTokens); // finished
-  finally
-    instance.Free;
-  end;
+  // done, finish
+  instance.SetVariable('done', true);
+  RunInstance(instance);
+  CheckEquals(0, instance.CountTokens); // finished
 end;
 
 procedure TTestRunner.RunStop;

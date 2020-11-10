@@ -47,7 +47,7 @@ procedure RegisterOctopusTest(ATestClass: TBizTestCaseClass);
 implementation
 
 uses
-  MemoryInstanceData;
+  Octopus.Persistence.Memory;
 
 procedure RegisterOctopusTest(ATestClass: TBizTestCaseClass);
 begin
@@ -71,15 +71,11 @@ end;
 
 procedure TOctopusTestCase.RunProcess(AssertionProc: TRunAssertionProc);
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
 begin
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
-    AssertionProc(RunInstance(instance), Instance);
-  finally
-    instance.Free;
-  end;
+  Process.InitInstance(instance);
+  AssertionProc(RunInstance(instance), Instance);
 end;
 
 procedure TOctopusTestCase.RunProcess(ExpectedStatus: TRunnerStatus; ExpectedTokens: integer);

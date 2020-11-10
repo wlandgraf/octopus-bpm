@@ -29,7 +29,7 @@ implementation
 
 uses
   OctopusTests.Utils,
-  MemoryInstanceData;
+  Octopus.Persistence.Memory;
 
 { TTestGateways }
 
@@ -166,7 +166,7 @@ end;
 
 procedure TTestGateways.InclusiveMerge;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
   token: TToken;
   tokens: TArray<TToken>;
 begin
@@ -217,38 +217,34 @@ begin
       .LinkTo('inc'); // inclusive gateway
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
+  Process.InitInstance(instance);
 
-    // run #1: two parallel activities
-    RunInstance(instance);
-    CheckEquals(2, instance.CountTokens);
-    tokens := instance.GetTokens;
-    Check(tokens[0].Transition <> tokens[1].Transition, 'transitions not equal');
+  // run #1: two parallel activities
+  RunInstance(instance);
+  CheckEquals(2, instance.CountTokens);
+  tokens := instance.GetTokens;
+  Check(tokens[0].Transition <> tokens[1].Transition, 'transitions not equal');
 
-    // run #2: act1 done, inclusive gateway must wait for act2
-    instance.SetVariable('done1', true);
-    RunInstance(instance);
-    CheckEquals(2, instance.CountTokens);
-    tokens := instance.GetTokens;
-    for token in tokens do
-      Check((token.Node.Id = 'act2') or (token.Node.Id = 'inc'));
+  // run #2: act1 done, inclusive gateway must wait for act2
+  instance.SetVariable('done1', true);
+  RunInstance(instance);
+  CheckEquals(2, instance.CountTokens);
+  tokens := instance.GetTokens;
+  for token in tokens do
+    Check((token.Node.Id = 'act2') or (token.Node.Id = 'inc'));
 
-    // run #3: act2 done, inclusive gateway must trigger and back to act1
-    instance.SetVariable('done1', false);
-    instance.SetVariable('done2', true);
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens); // running
-    CheckEquals('act1', instance.GetTokens[0].Node.Id);
+  // run #3: act2 done, inclusive gateway must trigger and back to act1
+  instance.SetVariable('done1', false);
+  instance.SetVariable('done2', true);
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens); // running
+  CheckEquals('act1', instance.GetTokens[0].Node.Id);
 
-    // run #4: act1 done, inclusive gateway must trigger (nothing to wait) and finish
-    instance.SetVariable('done1', true);
-    instance.SetVariable('finish', true);
-    RunInstance(instance);
-    CheckEquals(0, instance.CountTokens); // finished
-  finally
-    instance.Free;
-  end;
+  // run #4: act1 done, inclusive gateway must trigger (nothing to wait) and finish
+  instance.SetVariable('done1', true);
+  instance.SetVariable('finish', true);
+  RunInstance(instance);
+  CheckEquals(0, instance.CountTokens); // finished
 end;
 
 procedure TTestGateways.Parallel;
@@ -291,7 +287,7 @@ end;
 
 procedure TTestGateways.ParallelMerge;
 var
-  instance: TMemoryInstanceData;
+  instance: IProcessInstanceData;
   token: TToken;
   tokens: TArray<TToken>;
 begin
@@ -326,29 +322,25 @@ begin
       .LinkTo('merge');
 
   instance := TMemoryInstanceData.Create;
-  try
-    instance.StartInstance(Process);
+  Process.InitInstance(instance);
 
-    // run #1: two parallel activities
-    RunInstance(instance);
-    CheckEquals(2, instance.CountTokens); // running
+  // run #1: two parallel activities
+  RunInstance(instance);
+  CheckEquals(2, instance.CountTokens); // running
 
-    // run #2: act1 done, parallel gateway must wait for act2
-    instance.SetVariable('done1', true);
-    RunInstance(instance);
-    CheckEquals(2, instance.CountTokens);
-    tokens := instance.GetTokens;
-    for token in tokens do
-      Check((token.Node.Id = 'act2') or (token.Node.Id = 'merge'));
+  // run #2: act1 done, parallel gateway must wait for act2
+  instance.SetVariable('done1', true);
+  RunInstance(instance);
+  CheckEquals(2, instance.CountTokens);
+  tokens := instance.GetTokens;
+  for token in tokens do
+    Check((token.Node.Id = 'act2') or (token.Node.Id = 'merge'));
 
-    // run #3: act2 done, parallel gateway must trigger
-    instance.SetVariable('done2', true);
-    RunInstance(instance);
-    CheckEquals(1, instance.CountTokens);
-    CheckEquals('last', instance.GetTokens[0].Node.Id);
-  finally
-    instance.Free;
-  end;
+  // run #3: act2 done, parallel gateway must trigger
+  instance.SetVariable('done2', true);
+  RunInstance(instance);
+  CheckEquals(1, instance.CountTokens);
+  CheckEquals('last', instance.GetTokens[0].Node.Id);
 end;
 
 initialization
