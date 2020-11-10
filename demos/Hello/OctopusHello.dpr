@@ -31,12 +31,6 @@ begin
         end))
       .EndEvent
     .GotoLastGateway
-      .Condition(
-        function(Context: TExecutionContext): boolean
-        begin
-          result := Context.Instance.GetVariable('age').AsInteger > 70;
-        end
-      )
       .Activity(TAnonymousActivity.Create(
         procedure(Context: TActivityExecutionContext)
         begin
