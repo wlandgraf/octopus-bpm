@@ -41,6 +41,7 @@ type
     FVersion: Integer;
     FStatus: TProcessDefinitionStatus;
     FCreatedOn: TDateTime;
+    [DBTypeWideMemo]
     [Column('PROCESS', [TColumnProp.Lazy])]
     FProcess: TBlob;
   public

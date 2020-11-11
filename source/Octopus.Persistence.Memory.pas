@@ -42,9 +42,10 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
-  TMemoryInstancePersistence = class(TInterfacedObject, IInstancePersistence)
+  TMemoryRepository = class(TInterfacedObject, IOctopusRepository)
   public
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
+    function PublishDefinition(const Name, JsonDefinition: string): string;
   end;
 
 implementation
@@ -177,10 +178,16 @@ end;
 
 { TMemoryInstancePersistence }
 
-function TMemoryInstancePersistence.CreateInstance(
+function TMemoryRepository.CreateInstance(
   const ProcessId: string): IProcessInstanceData;
 begin
   Result := TMemoryInstanceData.Create;
+end;
+
+function TMemoryRepository.PublishDefinition(const Name,
+  JsonDefinition: string): string;
+begin
+
 end;
 
 end.

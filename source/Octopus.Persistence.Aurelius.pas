@@ -40,7 +40,7 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
-  TAureliusInstancePersistence = class(TInterfacedObject, IInstancePersistence)
+  TAureliusOctopusRepository = class(TInterfacedObject, IOctopusRepository)
   strict private
     FPool: IDBConnectionPool;
   protected
@@ -48,13 +48,14 @@ type
     property Pool: IDBConnectionPool read FPool;
   public
     constructor Create(APool: IDBConnectionPool);
+    function PublishDefinition(const Name, JsonDefinition: string): string;
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
   end;
 
 implementation
 
 uses
-  System.DateUtils,
+  Aurelius.Criteria.Base,
   Aurelius.Criteria.Linq,
   Aurelius.Criteria.Projections,
   Octopus.DataTypes,
@@ -291,13 +292,13 @@ end;
 
 { TAureliusInstancePersistence }
 
-constructor TAureliusInstancePersistence.Create(APool: IDBConnectionPool);
+constructor TAureliusOctopusRepository.Create(APool: IDBConnectionPool);
 begin
   inherited Create;
   FPool := APool;
 end;
 
-function TAureliusInstancePersistence.CreateInstance(
+function TAureliusOctopusRepository.CreateInstance(
   const ProcessId: string): IProcessInstanceData;
 var
   Manager: TObjectManager;
@@ -312,7 +313,7 @@ begin
 
     Instance := TProcessInstanceEntity.Create;
     Manager.AddToGarbage(Instance);
-    Instance.CreatedOn := TTimeZone.Local.ToUniversalTime(Now);
+    Instance.CreatedOn := Now;
     Instance.ProcessDefinition := Definition;
 
     Result := TAureliusInstanceData.Create(Pool.GetConnection, Instance.Id);
@@ -321,9 +322,43 @@ begin
   end;
 end;
 
-function TAureliusInstancePersistence.CreateManager: TObjectManager;
+function TAureliusOctopusRepository.CreateManager: TObjectManager;
 begin
   Result := TObjectManager.Create(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
+end;
+
+function TAureliusOctopusRepository.PublishDefinition(const Name,
+  JsonDefinition: string): string;
+var
+  Manager: TObjectManager;
+  VersionResult: TCriteriaResult;
+  NextVersion: Integer;
+  Definition: TProcessDefinitionEntity;
+begin
+  Manager := CreateManager;
+  try
+    VersionResult := Manager.Find<TProcessDefinitionEntity>
+      .Select(Linq['Version'].Max)
+      .Where(Linq['Name'].ILike(Name))
+      .UniqueValue;
+    try
+      NextVersion := VersionResult.Values[0] + 1;
+    finally
+      VersionResult.Free;
+    end;
+
+    Definition := TProcessDefinitionEntity.Create;
+    Manager.AddToGarbage(Definition);
+    Definition.Name := Name;
+    Definition.Version := NextVersion;
+    Definition.Status := TProcessDefinitionStatus.Published;
+    Definition.CreatedOn := Now;
+    Definition.Process.AsUnicodeString := JsonDefinition;
+    Manager.Save(Definition);
+    Result := Definition.Id;
+  finally
+    Manager.Free;
+  end;
 end;
 
 end.

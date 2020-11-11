@@ -6,8 +6,9 @@ uses
   Octopus.Process;
 
 type
-  IInstancePersistence = interface
-  ['{3A1819A3-2889-4F99-947D-8DB78172B9A6}']
+  IOctopusRepository = interface
+  ['{B56548F7-8E2B-441E-AE2A-9C04EED98B7D}']
+    function PublishDefinition(const Name, JsonDefinition: string): string;
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
   end;
 
