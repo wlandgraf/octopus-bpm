@@ -19,6 +19,7 @@ resourcestring
   SErrorProcessNotAssigned       = 'Process not assigned';
   SErrorStartEventIncoming       = 'Incoming transition not allowed in start events';
   SErrorUnsupportedDataType      = 'Unsupported datatype: %s';
+  SErrorDefinitionNotFound       = 'Process definition "%s" not found';
 
 implementation
 

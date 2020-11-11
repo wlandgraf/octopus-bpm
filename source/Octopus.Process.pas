@@ -76,6 +76,7 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
+
   TFlowNode = class abstract(TFlowElement)
   private
     FIncomingTransitions: TList<TTransition>;

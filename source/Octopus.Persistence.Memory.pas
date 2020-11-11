@@ -7,6 +7,7 @@ uses
   System.SysUtils,
   Generics.Defaults,
   Generics.Collections,
+  Octopus.Persistence.Common,
   Octopus.Process;
 
 type
@@ -39,6 +40,11 @@ type
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetLocalVariable(Token: TToken; const Name: string): TValue;
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+  end;
+
+  TMemoryInstancePersistence = class(TInterfacedObject, IInstancePersistence)
+  public
+    function CreateInstance(const ProcessId: string): IProcessInstanceData;
   end;
 
 implementation
@@ -167,6 +173,14 @@ begin
   ivar.Value := Value;
   ivar.Token := Token;
   FVariables.Add(ivar);
+end;
+
+{ TMemoryInstancePersistence }
+
+function TMemoryInstancePersistence.CreateInstance(
+  const ProcessId: string): IProcessInstanceData;
+begin
+  Result := TMemoryInstanceData.Create;
 end;
 
 end.

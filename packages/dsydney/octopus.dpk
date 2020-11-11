@@ -53,6 +53,8 @@ contains
   Octopus.Repository in '..\..\source\Octopus.Repository.pas',
   Octopus.Resources in '..\..\source\Octopus.Resources.pas',
   Octopus.Validator in '..\..\source\Octopus.Validator.pas',
-  Octopus.Persistence.Memory in '..\..\source\Octopus.Persistence.Memory.pas';
+  Octopus.Persistence.Memory in '..\..\source\Octopus.Persistence.Memory.pas',
+  Octopus.Persistence.Common in '..\..\source\Octopus.Persistence.Common.pas',
+  Octopus.Exceptions in '..\..\source\Octopus.Exceptions.pas';
 
 end.

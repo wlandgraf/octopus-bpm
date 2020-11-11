@@ -14,7 +14,7 @@ type
   IOctopusRepository = interface
   ['{7CC984E2-4BB4-4C23-886A-19C2DEE8C493}']
     function CreateProcessDefinition(const Name: string): string;
-    function ListProcessDefinitions: TList<TOctopusProcessDefinition>;
+    function ListProcessDefinitions: TList<TProcessDefinitionEntity>;
     function GetProcessDefinition(const Id: string): TWorkflowProcess;
     procedure UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
   end;
@@ -26,7 +26,7 @@ type
     constructor Create(Connection: IDBConnection);
     destructor Destroy; override;
     function CreateProcessDefinition(const Name: string): string;
-    function ListProcessDefinitions: TList<TOctopusProcessDefinition>;
+    function ListProcessDefinitions: TList<TProcessDefinitionEntity>;
     function GetProcessDefinition(const Id: string): TWorkflowProcess;
     procedure UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
   end;
@@ -46,9 +46,9 @@ end;
 
 function TOctopusRepository.CreateProcessDefinition(const Name: string): string;
 var
-  def: TOctopusProcessDefinition;
+  def: TProcessDefinitionEntity;
 begin
-  def := TOctopusProcessDefinition.Create;
+  def := TProcessDefinitionEntity.Create;
   def.Name := Name;
   FManager.Save(def);
   Result := def.Id;
@@ -62,25 +62,25 @@ end;
 
 function TOctopusRepository.GetProcessDefinition(const Id: string): TWorkflowProcess;
 var
-  def: TOctopusProcessDefinition;
+  def: TProcessDefinitionEntity;
 begin
-  def := FManager.Find<TOctopusProcessDefinition>(Id);
+  def := FManager.Find<TProcessDefinitionEntity>(Id);
   if (def <> nil) and not def.Process.IsNull then
     result := TWorkflowDeserializer.ProcessFromJson(def.Process.AsString)
   else
     result := nil;
 end;
 
-function TOctopusRepository.ListProcessDefinitions: TList<TOctopusProcessDefinition>;
+function TOctopusRepository.ListProcessDefinitions: TList<TProcessDefinitionEntity>;
 begin
-  result := FManager.Find<TOctopusProcessDefinition>.List;
+  result := FManager.Find<TProcessDefinitionEntity>.List;
 end;
 
 procedure TOctopusRepository.UpdateProcessDefinition(const Id: string; Process: TWorkflowProcess);
 var
-  def: TOctopusProcessDefinition;
+  def: TProcessDefinitionEntity;
 begin
-  def := FManager.Find<TOctopusProcessDefinition>(Id);
+  def := FManager.Find<TProcessDefinitionEntity>(Id);
   if def <> nil then
   begin
     def.Process.AsString := TWorkflowSerializer.ProcessToJson(Process);
