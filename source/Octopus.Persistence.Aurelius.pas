@@ -53,6 +53,7 @@ type
   TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
   public
     function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+    function GetDefinition(const ProcessId: string): TWorkflowProcess;
   end;
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
@@ -338,6 +339,11 @@ begin
 end;
 
 { TAureliusRepository }
+
+function TAureliusRepository.GetDefinition(
+  const ProcessId: string): TWorkflowProcess;
+begin
+end;
 
 function TAureliusRepository.PublishDefinition(const Name: string;
   Process: TWorkflowProcess): string;

@@ -49,6 +49,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+    function GetDefinition(const ProcessId: string): TWorkflowProcess;
   end;
 
   TMemoryRuntime = class(TInterfacedObject, IOctopusRuntime)
@@ -205,6 +206,18 @@ destructor TMemoryRepository.Destroy;
 begin
   FDefinitions.Free;
   inherited;
+end;
+
+function TMemoryRepository.GetDefinition(
+  const ProcessId: string): TWorkflowProcess;
+begin
+  TMonitor.Enter(FDefinitions);
+  try
+    if not FDefinitions.TryGetValue(ProcessId, Result) then
+      Result := nil;
+  finally
+    TMonitor.Exit(FDefinitions);
+  end;
 end;
 
 function TMemoryRepository.PublishDefinition(const Name: string;

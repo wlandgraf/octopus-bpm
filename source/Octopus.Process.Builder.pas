@@ -20,11 +20,13 @@ type
     FElement: TFlowElement;
     function GetCurrentNode: TFlowNode;
     function GetCurrentTransition: TTransition;
+    function GetRoot: TProcessBuilder;
   protected
     function BuildItem(AElement: TFlowElement; Linked: boolean): TProcessBuilder;
     property CurrentElement: TFlowElement read FElement;
     property CurrentNode: TFlowNode read GetCurrentNode;
     property CurrentTransition: TTransition read GetCurrentTransition;
+    property Root: TProcessBuilder read GetRoot;
   public
     constructor Create(AProcess: TWorkflowProcess);
     destructor Destroy; override;
@@ -147,7 +149,7 @@ end;
 function TProcessBuilder.Done: TWorkflowProcess;
 begin
   Result := FProcess;
-  Self.Free;
+  Root.Free;
 end;
 
 function TProcessBuilder.EndEvent: TProcessBuilder;
@@ -180,6 +182,13 @@ begin
     result := TTransition(FElement)
   else
     raise Exception.Create(SBuilderCurrentTransitionError);
+end;
+
+function TProcessBuilder.GetRoot: TProcessBuilder;
+begin
+  Result := Self;
+  while Result.FParent <> nil do
+    Result := Result.FParent;
 end;
 
 function TProcessBuilder.GotoElement(const AId: string): TProcessBuilder;
