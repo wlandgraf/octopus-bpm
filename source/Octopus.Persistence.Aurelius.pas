@@ -40,7 +40,7 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
-  TAureliusOctopusRepository = class(TInterfacedObject, IOctopusRepository)
+  TAureliusPersistence = class(TInterfacedObject)
   strict private
     FPool: IDBConnectionPool;
   protected
@@ -48,7 +48,15 @@ type
     property Pool: IDBConnectionPool read FPool;
   public
     constructor Create(APool: IDBConnectionPool);
-    function PublishDefinition(const Name, JsonDefinition: string): string;
+  end;
+
+  TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
+  public
+    function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+  end;
+
+  TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
+  public
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
   end;
 
@@ -290,15 +298,22 @@ begin
     result := TValue.Empty;
 end;
 
-{ TAureliusInstancePersistence }
+{ TAureliusPersistence }
 
-constructor TAureliusOctopusRepository.Create(APool: IDBConnectionPool);
+constructor TAureliusPersistence.Create(APool: IDBConnectionPool);
 begin
   inherited Create;
   FPool := APool;
 end;
 
-function TAureliusOctopusRepository.CreateInstance(
+function TAureliusPersistence.CreateManager: TObjectManager;
+begin
+  Result := TObjectManager.Create(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
+end;
+
+{ TAureliusRuntime }
+
+function TAureliusRuntime.CreateInstance(
   const ProcessId: string): IProcessInstanceData;
 var
   Manager: TObjectManager;
@@ -322,13 +337,10 @@ begin
   end;
 end;
 
-function TAureliusOctopusRepository.CreateManager: TObjectManager;
-begin
-  Result := TObjectManager.Create(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
-end;
+{ TAureliusRepository }
 
-function TAureliusOctopusRepository.PublishDefinition(const Name,
-  JsonDefinition: string): string;
+function TAureliusRepository.PublishDefinition(const Name: string;
+  Process: TWorkflowProcess): string;
 var
   Manager: TObjectManager;
   VersionResult: TCriteriaResult;
@@ -353,7 +365,7 @@ begin
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
     Definition.CreatedOn := Now;
-    Definition.Process.AsUnicodeString := JsonDefinition;
+    Definition.Process.AsUnicodeString :=  TWorkflowSerializer.ProcessToJson(Process);
     Manager.Save(Definition);
     Result := Definition.Id;
   finally

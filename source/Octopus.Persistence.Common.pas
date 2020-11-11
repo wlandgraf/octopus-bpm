@@ -8,7 +8,11 @@ uses
 type
   IOctopusRepository = interface
   ['{B56548F7-8E2B-441E-AE2A-9C04EED98B7D}']
-    function PublishDefinition(const Name, JsonDefinition: string): string;
+    function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+  end;
+
+  IOctopusRuntime = interface
+  ['{B56548F7-8E2B-441E-AE2A-9C04EED98B7D}']
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
   end;
 

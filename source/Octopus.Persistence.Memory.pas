@@ -43,12 +43,29 @@ type
   end;
 
   TMemoryRepository = class(TInterfacedObject, IOctopusRepository)
+  strict private
+    FDefinitions: TObjectDictionary<string, TWorkflowProcess>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+  end;
+
+  TMemoryRuntime = class(TInterfacedObject, IOctopusRuntime)
   public
     function CreateInstance(const ProcessId: string): IProcessInstanceData;
-    function PublishDefinition(const Name, JsonDefinition: string): string;
   end;
 
 implementation
+
+function NewId: string;
+var
+  S: string;
+begin
+  S := LowerCase(GuidToString(TGuid.NewGuid));
+  S := Copy(S, 2, 8) + Copy(S, 11, 4) + Copy(S, 16, 4) + Copy(S, 21, 4) + Copy(S, 26, 12);
+  Result := S;
+end;
 
 { TMemoryInstanceData }
 
@@ -176,18 +193,38 @@ begin
   FVariables.Add(ivar);
 end;
 
-{ TMemoryInstancePersistence }
+{ TMemoryRepository }
 
-function TMemoryRepository.CreateInstance(
+constructor TMemoryRepository.Create;
+begin
+  inherited Create;
+  FDefinitions := TObjectDictionary<string, TWorkflowProcess>.Create([doOwnsValues]);
+end;
+
+destructor TMemoryRepository.Destroy;
+begin
+  FDefinitions.Free;
+  inherited;
+end;
+
+function TMemoryRepository.PublishDefinition(const Name: string;
+  Process: TWorkflowProcess): string;
+begin
+  TMonitor.Enter(FDefinitions);
+  try
+    Result := NewId;
+    FDefinitions.Add(Result, Process);
+  finally
+    TMonitor.Exit(FDefinitions);
+  end;
+end;
+
+{ TMemoryRuntime }
+
+function TMemoryRuntime.CreateInstance(
   const ProcessId: string): IProcessInstanceData;
 begin
   Result := TMemoryInstanceData.Create;
-end;
-
-function TMemoryRepository.PublishDefinition(const Name,
-  JsonDefinition: string): string;
-begin
-
 end;
 
 end.
