@@ -18,6 +18,7 @@ type
   private
     FManager: TObjectManager;
     FInstance: TProcessInstanceEntity;
+    FInstanceId: string;
     FActiveTokens: TDictionary<TToken, TTokenEntity>;
     procedure LoadActiveTokens;
     procedure SaveToken(Token: TToken);
@@ -101,9 +102,8 @@ constructor TAureliusInstanceData.Create(Connection: IDBConnection; const Instan
 begin
   FManager := TObjectManager.Create(Connection, TMappingExplorer.Get(OctopusModel));
   FActiveTokens := TDictionary<TToken,TTokenEntity>.Create;
-
+  FInstanceId := InstanceId;
   FInstance := FManager.Find<TProcessInstanceEntity>(InstanceId);
-
   LoadActiveTokens;
 end;
 
@@ -324,13 +324,14 @@ begin
   Manager := CreateManager;
   try
     Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
-    if Definition = nil then
-      raise EOctopusDefinitionNotFound.Create(ProcessId);
+//    if Definition = nil then
+//      raise EOctopusDefinitionNotFound.Create(ProcessId);
 
     Instance := TProcessInstanceEntity.Create;
     Manager.AddToGarbage(Instance);
     Instance.CreatedOn := Now;
     Instance.ProcessDefinition := Definition;
+    Manager.Save(Instance);
 
     Result := TAureliusInstanceData.Create(Pool.GetConnection, Instance.Id);
   finally

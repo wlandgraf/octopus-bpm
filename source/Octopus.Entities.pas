@@ -67,8 +67,8 @@ type
     FId: string;
     [Version]
     FRowVersion: Integer;
-    [Association([TAssociationProp.Required, TAssociationProp.Lazy], CascadeTypeAllButRemove)]
-    [JoinColumn('PROC_DEFINITION_ID', [TColumnProp.Required])]
+    [Association([TAssociationProp.Lazy], CascadeTypeAllButRemove)]
+    [JoinColumn('PROC_DEFINITION_ID', [])]
     FProcessDefinition: Proxy<TProcessDefinitionEntity>;
     FCreatedOn: TDateTime;
     FFinishedOn: Nullable<TDateTime>;
