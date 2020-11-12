@@ -234,14 +234,8 @@ begin
 end;
 
 function TProcessBuilder.LinkTo(const ElementId: string): TProcessBuilder;
-var
-  node: TFlowNode;
 begin
-  node := FProcess.GetNode(ElementId);
-  if Assigned(node) then
-    result := BuildItem(node, true)
-  else
-    raise Exception.CreateFmt(SErrorElementNotFound, [ElementId]);
+  result := BuildItem(FProcess.GetNode(ElementId), true);
 end;
 
 function TProcessBuilder.LinkTo(ANode: TFlowNode): TProcessBuilder;

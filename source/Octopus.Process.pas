@@ -43,6 +43,8 @@ type
     destructor Destroy; override;
     procedure InitInstance(Instance: IProcessInstanceData);
     function StartNode: TFlowNode;
+    function FindNode(const AId: string): TFlowNode;
+    function FindTransition(const AId: string): TTransition;
     function GetNode(const AId: string): TFlowNode;
     function GetTransition(const AId: string): TTransition;
     function GetVariable(const AName: string): TVariable;
@@ -128,16 +130,24 @@ type
     property DefaultValue: TValue read FDefaultValue write SetDefaultValue;
   end;
 
+  TTokenStatus = (Active, Waiting, Finished);
+
   TToken = class
   private
-    FTransition: TTransition;
-    FNode: TFlowNode;
-    function GetNode: TFlowNode;
-    procedure SetNode(const Value: TFlowNode);
-    procedure SetTransition(const Value: TTransition);
+    FTransitionId: string;
+    FNodeId: string;
+    FProducerId: string;
+    FConsumerId: string;
+    FStatus: TTokenStatus;
+    function GetNodeId: string;
+    procedure SetNodeId(const Value: string);
+    procedure SetTransitionId(const Value: string);
   public
-    property Transition: TTransition read FTransition write SetTransition;
-    property Node: TFlowNode read GetNode write SetNode;
+    property TransitionId: string read FTransitionId write SetTransitionId;
+    property NodeId: string read GetNodeId write SetNodeId;
+    property ConsumerId: string read FConsumerId write FConsumerId;
+    property ProducerId: string read FProducerId write FProducerId;
+    property Status: TTokenStatus read FStatus write FStatus;
   end;
 
   TExecutionContext = class
@@ -186,6 +196,7 @@ type
 implementation
 
 uses
+  Octopus.Exceptions,
   Octopus.Global,
   Octopus.Resources;
 
@@ -206,7 +217,7 @@ begin
   inherited;
 end;
 
-function TWorkflowProcess.GetNode(const AId: string): TFlowNode;
+function TWorkflowProcess.FindNode(const AId: string): TFlowNode;
 begin
   for result in Nodes do
     if SameText(AId, result.Id) then
@@ -214,12 +225,26 @@ begin
   result := nil;
 end;
 
-function TWorkflowProcess.GetTransition(const AId: string): TTransition;
+function TWorkflowProcess.FindTransition(const AId: string): TTransition;
 begin
   for result in Transitions do
     if SameText(AId, result.Id) then
       exit;
   result := nil;
+end;
+
+function TWorkflowProcess.GetNode(const AId: string): TFlowNode;
+begin
+  Result := FindNode(AId);
+  if Result = nil then
+    raise EOCtopusNodeNotFound.Create(AId);
+end;
+
+function TWorkflowProcess.GetTransition(const AId: string): TTransition;
+begin
+  Result := FindTransition(AId);
+  if Result = nil then
+    raise EOctopusTransitionNotFound.Create(AId);
 end;
 
 function TWorkflowProcess.GetVariable(const AName: string): TVariable;
@@ -328,24 +353,19 @@ end;
 
 { TToken }
 
-function TToken.GetNode: TFlowNode;
+function TToken.GetNodeId: string;
 begin
-  if Transition <> nil then
-    result := Transition.Target
-  else
-    result := FNode;
+  Result := FNodeId;
 end;
 
-procedure TToken.SetNode(const Value: TFlowNode);
+procedure TToken.SetNodeId(const Value: string);
 begin
-  FNode := Value;
-  FTransition := nil;
+  FNodeId := Value;
 end;
 
-procedure TToken.SetTransition(const Value: TTransition);
+procedure TToken.SetTransitionId(const Value: string);
 begin
-  FTransition := Value;
-  FNode := nil;
+  FTransitionId := Value;
 end;
 
 { TTransition }
@@ -418,7 +438,7 @@ var
   token: TToken;
 begin
   for token in FInstance.GetTokens(Node) do
-    if not FPersistedTokens.Contains(token) and (token.Transition = Transition) then
+    if not FPersistedTokens.Contains(token) and (token.TransitionId = Transition.Id) then
       exit(token);
   result := nil;
 end;

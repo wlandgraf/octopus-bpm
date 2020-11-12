@@ -85,6 +85,7 @@ implementation
 
 uses
   Bcl.Rtti.Utils,
+  Octopus.Exceptions,
   Octopus.Resources;
 
 { TOctopusObjectConverter }
@@ -121,9 +122,11 @@ end;
 
 function TOctopusObjectConverter.GetProcessElement(const AId: string): TFlowElement;
 begin
-  result := Factory.GetProcess.GetNode(AId);
+  result := Factory.GetProcess.FindNode(AId);
   if result = nil then
-    result := Factory.GetProcess.GetTransition(AId);
+    result := Factory.GetProcess.FindTransition(AId);
+  if result = nil then
+    raise EOctopusElementNotFound.Create(AId);
 end;
 
 function TOctopusObjectConverter.GetPropName(const AName: string): string;

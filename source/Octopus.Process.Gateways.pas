@@ -56,7 +56,7 @@ var
   token: TToken;
 begin
   for token in Tokens do
-    if token.Transition = Transition then
+    if token.TransitionId = Transition.Id then
       exit(true);
   result := false;
 end;

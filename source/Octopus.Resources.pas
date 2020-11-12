@@ -20,6 +20,8 @@ resourcestring
   SErrorStartEventIncoming       = 'Incoming transition not allowed in start events';
   SErrorUnsupportedDataType      = 'Unsupported datatype: %s';
   SErrorDefinitionNotFound       = 'Process definition "%s" not found';
+  SErrorNodeNotFound             = 'Node "%s" not found';
+  SErrorTransitionNotFound       = 'Transition "%s" not found';
 
 implementation
 

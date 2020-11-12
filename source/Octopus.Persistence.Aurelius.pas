@@ -80,7 +80,7 @@ var
   token: TToken;
 begin
   token := TToken.Create;
-  token.Transition := Transition;
+  token.TransitionId := Transition.Id;
   SaveToken(token);
 end;
 
@@ -89,7 +89,7 @@ var
   token: TToken;
 begin
   token := TToken.Create;
-  token.Node := Node;
+  token.NodeId := Node.Id;
   SaveToken(token);
 end;
 
@@ -144,7 +144,7 @@ var
 begin
   SetLength(result, 0);
   for token in FActiveTokens.Keys do
-    if token.Node = Node then
+    if token.NodeId = Node.Id then
     begin
       SetLength(result, Length(result) + 1);
       result[Length(result) - 1] := token;
@@ -218,9 +218,9 @@ var
 begin
   tokenEnt := TTokenEntity.Create;
   tokenEnt.CreatedOn := Now; // TODO
-  if Token.Transition <> nil then
-    tokenEnt.TransitionId := Token.Transition.Id;
-  tokenEnt.NodeId := Token.Node.Id;
+  if Token.TransitionId <> '' then
+    tokenEnt.TransitionId := Token.TransitionId;
+  tokenEnt.NodeId := Token.NodeId;
   FManager.Save(tokenEnt);
 end;
 

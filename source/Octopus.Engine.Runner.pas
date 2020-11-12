@@ -104,7 +104,7 @@ end;
 
 function TWorkflowRunner.ProcessToken(Token: TToken): boolean;
 begin
-  result := ProcessNode(token.Node);
+  result := ProcessNode(FProcess.GetNode(token.NodeId));
 end;
 
 end.

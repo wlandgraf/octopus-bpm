@@ -75,7 +75,7 @@ var
   token: TToken;
 begin
   token := TToken.Create;
-  token.Node := Node;
+  token.NodeId := Node.Id;
   FTokens.Add(token);
 end;
 
@@ -84,7 +84,8 @@ var
   token: TToken;
 begin
   token := TToken.Create;
-  token.Transition := Transition;
+  token.TransitionId := Transition.Id;
+  token.NodeId := Transition.Target.Id;
   FTokens.Add(token);
 end;
 
@@ -124,7 +125,7 @@ var
 begin
   SetLength(result, 0);
   for token in FTokens do
-    if token.Node = Node then
+    if token.NodeId = Node.Id then
     begin
       SetLength(result, Length(result) + 1);
       result[Length(result) - 1] := token;
@@ -152,7 +153,7 @@ var
 begin
   result := nil;
   for token in FRemovedTokens do
-    if (token.Transition <> nil) and (token.Transition.Target = Node) then
+    if token.NodeId = Node.Id then
       result := token;
 end;
 

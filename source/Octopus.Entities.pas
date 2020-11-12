@@ -84,7 +84,7 @@ type
   end;
 
   [Enumeration(TEnumMappingType.emInteger)]
-  TTokenStatus = (Active);
+  TTokenEntityStatus = (Active, Waiting, Finished);
 
   [Entity, Automapping]
   [Model(OctopusModel)]
@@ -104,7 +104,7 @@ type
     FNodeId: Nullable<string>;
     FCreatedOn: TDateTime;
     FFinishedOn: Nullable<TDateTime>;
-    FStatus: TTokenStatus;
+    FStatus: TTokenEntityStatus;
     function GetInstance: TProcessInstanceEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
   public
@@ -114,7 +114,7 @@ type
     property TransitionId: Nullable<string> read FTransitionId write FTransitionId;
     property NodeId: Nullable<string> read FNodeId write FNodeId;
     property Instance: TProcessInstanceEntity read GetInstance write SetInstance;
-    property Status: TTokenStatus read FStatus write FStatus;
+    property Status: TTokenEntityStatus read FStatus write FStatus;
   end;
 
   [Entity, Automapping]
