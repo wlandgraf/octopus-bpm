@@ -44,6 +44,8 @@ type
     [DBTypeWideMemo]
     [Column('PROCESS', [TColumnProp.Lazy])]
     FProcess: TBlob;
+  strict protected
+    property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
     property Name: string read FName write FName;
@@ -75,6 +77,8 @@ type
     FStatus: TProcessInstanceStatus;
     function GetProcessDefinition: TProcessDefinitionEntity;
     procedure SetProcessDefinition(const Value: TProcessDefinitionEntity);
+  strict protected
+    property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
     property ProcessDefinition: TProcessDefinitionEntity read GetProcessDefinition write SetProcessDefinition;
@@ -107,6 +111,8 @@ type
     FStatus: TTokenEntityStatus;
     function GetInstance: TProcessInstanceEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
+  strict protected
+    property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
     property CreatedOn: TDateTime read FCreatedOn write FCreatedOn;
@@ -147,6 +153,8 @@ type
     function GetToken: TTokenEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
     procedure SetToken(const Value: TTokenEntity);
+  strict protected
+    property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
     property Name: string read FName write FName;
