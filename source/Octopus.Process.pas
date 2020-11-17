@@ -1,5 +1,7 @@
 unit Octopus.Process;
 
+{$I Octopus.inc}
+
 interface
 
 uses
@@ -134,6 +136,7 @@ type
 
   TToken = class
   private
+    FId: string;
     FTransitionId: string;
     FNodeId: string;
     FProducerId: string;
@@ -143,6 +146,7 @@ type
     procedure SetNodeId(const Value: string);
     procedure SetTransitionId(const Value: string);
   public
+    property Id: string read FId write FId;
     property TransitionId: string read FTransitionId write SetTransitionId;
     property NodeId: string read GetNodeId write SetNodeId;
     property ConsumerId: string read FConsumerId write FConsumerId;

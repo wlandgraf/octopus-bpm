@@ -104,11 +104,13 @@ type
     [Association([TAssociationProp.Required, TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_INSTANCE_ID', [TColumnProp.Required])]
     FInstance: Proxy<TProcessInstanceEntity>;
-    FTransitionId: Nullable<string>;
-    FNodeId: Nullable<string>;
     FCreatedOn: TDateTime;
     FFinishedOn: Nullable<TDateTime>;
     FStatus: TTokenEntityStatus;
+    FTransitionId: Nullable<string>;
+    FNodeId: Nullable<string>;
+    FProducerId: Nullable<string>;
+    FConsumerId: Nullable<string>;
     function GetInstance: TProcessInstanceEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
   strict protected
@@ -119,8 +121,11 @@ type
     property FinishedOn: Nullable<TDateTime> read FFinishedOn write FFinishedOn;
     property TransitionId: Nullable<string> read FTransitionId write FTransitionId;
     property NodeId: Nullable<string> read FNodeId write FNodeId;
+    property ConsumerId: Nullable<string> read FConsumerId write FConsumerId;
+    property ProducerId: Nullable<string> read FProducerId write FProducerId;
     property Instance: TProcessInstanceEntity read GetInstance write SetInstance;
     property Status: TTokenEntityStatus read FStatus write FStatus;
+
   end;
 
   [Entity, Automapping]

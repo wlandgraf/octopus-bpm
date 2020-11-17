@@ -23,6 +23,9 @@ resourcestring
   SErrorNodeNotFound             = 'Node "%s" not found';
   SErrorTransitionNotFound       = 'Transition "%s" not found';
   SErrorInstanceNotFound         = 'Process instance "%s" not found';
+  SErrorTokenNotFound            = 'Token "%s" not found';
+  SErrorRemoveTokenNotFound      = 'Could not remove token "%s": not found';
+  SErrorSetVariableTokenNotFound = 'Could not set variable "%s": token "%s" not found';
 
 implementation
 

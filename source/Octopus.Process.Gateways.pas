@@ -1,5 +1,7 @@
 unit Octopus.Process.Gateways;
 
+{$I Octopus.inc}
+
 interface
 
 uses
