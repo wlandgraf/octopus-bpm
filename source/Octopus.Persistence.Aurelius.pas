@@ -5,6 +5,7 @@ interface
 uses
   System.SysUtils,
   System.Rtti,
+  System.TypInfo,
   Generics.Collections,
   Aurelius.Drivers.Interfaces,
   Aurelius.Engine.ObjectManager,
@@ -14,19 +15,29 @@ uses
   Octopus.Process;
 
 type
-  TAureliusInstanceData = class(TInterfacedObject, IProcessInstanceData)
+  TAureliusPersistence = class(TInterfacedObject)
+  strict private
+    FPool: IDBConnectionPool;
+  protected
+    function CreateManager: TObjectManager;
+    property Pool: IDBConnectionPool read FPool;
+  public
+    constructor Create(APool: IDBConnectionPool);
+  end;
+
+  TAureliusInstanceData = class(TAureliusPersistence, IProcessInstanceData)
   private
-    FManager: TObjectManager;
-    FInstance: TProcessInstanceEntity;
     FInstanceId: string;
     FActiveTokens: TDictionary<TToken, TTokenEntity>;
+    Manager: TObjectManager;
     procedure LoadActiveTokens;
     procedure SaveToken(Token: TToken);
-    procedure SaveVariable(InstanceVar: TVariableEntity; Value: TValue);
+    procedure FillVariable(InstanceVar: TVariableEntity; Value: TValue);
     function TokenFromEntity(InstanceToken: TTokenEntity): TToken;
     function VariableValue(InstanceVar: TVariableEntity): TValue;
+    function GetInstanceEntity(Manager: TObjectManager): TProcessInstanceEntity;
   public
-    constructor Create(Connection: IDBConnection; const InstanceId: string);
+    constructor Create(Pool: IDBConnectionPool; const InstanceId: string);
     destructor Destroy; override;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
@@ -41,20 +52,20 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
-  TAureliusPersistence = class(TInterfacedObject)
-  strict private
-    FPool: IDBConnectionPool;
-  protected
-    function CreateManager: TObjectManager;
-    property Pool: IDBConnectionPool read FPool;
-  public
-    constructor Create(APool: IDBConnectionPool);
-  end;
+  TProcessFromIdProc = reference to procedure(const ProcessId: string;
+    var Process: TWorkflowProcess);
+  TProcessFromNameProc = reference to procedure(const ProcessName: string;
+    Version: Integer; var Process: TWorkflowProcess);
 
   TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
+  strict private
+    FOnGetProcessFromName: TProcessFromNameProc;
+    FOnGetProcessFromId: TProcessFromIdProc;
   public
     function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
     function GetDefinition(const ProcessId: string): TWorkflowProcess;
+    property OnGetProcessFromId: TProcessFromIdProc read FOnGetProcessFromId write FOnGetProcessFromId;
+    property OnGetProcessFromName: TProcessFromNameProc read FOnGetProcessFromName write FOnGetProcessFromName;
   end;
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
@@ -65,6 +76,7 @@ type
 implementation
 
 uses
+  System.Variants,
   Aurelius.Criteria.Base,
   Aurelius.Criteria.Linq,
   Aurelius.Criteria.Projections,
@@ -81,6 +93,8 @@ var
 begin
   token := TToken.Create;
   token.TransitionId := Transition.Id;
+  Assert(Transition.Target <> nil);
+  token.NodeId := Transition.Target.Id;
   SaveToken(token);
 end;
 
@@ -98,37 +112,51 @@ begin
   result := FActiveTokens.Count;
 end;
 
-constructor TAureliusInstanceData.Create(Connection: IDBConnection; const InstanceId: string);
+constructor TAureliusInstanceData.Create(Pool: IDBConnectionPool; const InstanceId: string);
 begin
-  FManager := TObjectManager.Create(Connection, TMappingExplorer.Get(OctopusModel));
+  inherited Create(Pool);
   FActiveTokens := TDictionary<TToken,TTokenEntity>.Create;
   FInstanceId := InstanceId;
-  FInstance := FManager.Find<TProcessInstanceEntity>(InstanceId);
   LoadActiveTokens;
 end;
 
 destructor TAureliusInstanceData.Destroy;
 begin
-  FManager.Free;
   FActiveTokens.Free;
   inherited;
+end;
+
+function TAureliusInstanceData.GetInstanceEntity(
+  Manager: TObjectManager): TProcessInstanceEntity;
+begin
+  Result := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Result = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
 end;
 
 function TAureliusInstanceData.GetLocalVariable(Token: TToken; const Name: string): TValue;
 var
   tokenEnt: TTokenEntity;
   varEnt: TVariableEntity;
+  Manager: TObjectManager;
 begin
   if FActiveTokens.TryGetValue(Token, tokenEnt) then
   begin
-    varEnt := FManager.Find<TVariableEntity>
-      .Where((Linq['Instance'] = FInstance.Id)
-         and (Linq['Token'] = tokenEnt.Id)
-         and (Linq['Name'] = Name))
-      .UniqueResult;
+    Manager := CreateManager;
+    try
+      varEnt := Manager.Find<TVariableEntity>
+        .CreateAlias('Instance', 'i')
+        .CreateAlias('Token', 't')
+        .Where((Linq['t.Id'] = FInstanceId)
+           and (Linq['t.Id'] = tokenEnt.Id)
+           and (Linq['Name'] = Name))
+        .UniqueResult;
 
-    if varEnt <> nil then
-      exit(VariableValue(varEnt));
+      if varEnt <> nil then
+        Exit(VariableValue(varEnt));
+    finally
+      Manager.Free;
+    end;
   end;
   result := TValue.Empty;
 end;
@@ -155,85 +183,115 @@ function TAureliusInstanceData.GetVariable(const Name: string): TValue;
 var
   varEnt: TVariableEntity;
 begin
-  varEnt := FManager.Find<TVariableEntity>
-    .Where((Linq['Instance'] = FInstance.Id)
-       and (Linq['Token'].IsNull)
-       and (Linq['Name'] = Name))
-    .UniqueResult;
+  Manager := CreateManager;
+  try
+    varEnt := Manager.Find<TVariableEntity>
+      .CreateAlias('Instance', 'i')
+      .CreateAlias('Token', 't')
+      .Where((Linq['i.Id'] = FInstanceId)
+         and (Linq['t.Id'].IsNull)
+         and (Linq['Name'] = Name))
+      .UniqueResult;
 
-  if varEnt <> nil then
-    result := VariableValue(varEnt)
-  else
-    result := TValue.Empty;
+    if varEnt <> nil then
+      result := VariableValue(varEnt)
+    else
+      result := TValue.Empty;
+  finally
+    Manager.Free;
+  end;
 end;
 
 function TAureliusInstanceData.LastToken(Node: TFlowNode): TToken;
 var
   tokenList: TList<TTokenEntity>;
+  Manager: TObjectManager;
 begin
-  tokenList := FManager.Find<TTokenEntity>
-    .Where((Linq['Instance'] = FInstance.Id)
-        and Linq['FinishedOn'].IsNotNull)
-    .OrderBy('FinishedOn', false)
-    .Take(1)
-    .List;
+  Manager := CreateManager;
+  try
+    tokenList := Manager.Find<TTokenEntity>
+      .CreateAlias('Instance', 'i')
+      .Where((Linq['i.Id'] = FInstanceId)
+          and Linq['FinishedOn'].IsNotNull)
+      .OrderBy('FinishedOn', false)
+      .Take(1)
+      .List;
 
-  if tokenList.Count > 0 then
-    result := TokenFromEntity(tokenList[0])
-  else
-    result := nil;
+    if tokenList.Count > 0 then
+      result := TokenFromEntity(tokenList[0])
+    else
+      result := nil;
+  finally
+    Manager.Free;
+  end;
 end;
 
 procedure TAureliusInstanceData.LoadActiveTokens;
 var
   tokenList: TList<TTokenEntity>;
   tokenEnt: TTokenEntity;
+  Manager: TObjectManager;
 begin
-  FActiveTokens.Clear;
+  Manager := CreateManager;
+  try
+    FActiveTokens.Clear;
+    tokenList := Manager.Find<TTokenEntity>
+      .CreateAlias('Instance', 'i')
+      .Where((Linq['i.Id'] = FInstanceId)
+          and Linq['FinishedOn'].IsNull)
+      .List;
 
-  tokenList := FManager.Find<TTokenEntity>
-    .Where((Linq['Instance'] = FInstance.Id)
-        and Linq['FinishedOn'].IsNull)
-    .List;
-
-  for tokenEnt in tokenList do
-    FActiveTokens.Add(TokenFromEntity(tokenEnt), tokenEnt);
+    for tokenEnt in tokenList do
+      FActiveTokens.Add(TokenFromEntity(tokenEnt), tokenEnt);
+  finally
+    Manager.Free;
+  end;
 end;
 
 procedure TAureliusInstanceData.RemoveToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
+  Manager: TObjectManager;
 begin
   if FActiveTokens.TryGetValue(Token, tokenEnt) then
   begin
-    tokenEnt.FinishedOn := Now; // TODO
-    FManager.Flush;
-    FActiveTokens.Remove(Token);
+    Manager := CreateManager;
+    try
+      tokenEnt.FinishedOn := Now;
+      Manager.Flush;
+      FActiveTokens.Remove(Token);
+    finally
+      Manager.Free;
+    end;
   end;
 end;
 
 procedure TAureliusInstanceData.SaveToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
+  Manager: TObjectManager;
 begin
-  tokenEnt := TTokenEntity.Create;
-  tokenEnt.CreatedOn := Now; // TODO
-  if Token.TransitionId <> '' then
+  Manager := CreateManager;
+  try
+    tokenEnt := TTokenEntity.Create;
+    Manager.AddToGarbage(tokenEnt);
+    tokenEnt.CreatedOn := Now;
     tokenEnt.TransitionId := Token.TransitionId;
-  tokenEnt.NodeId := Token.NodeId;
-  FManager.Save(tokenEnt);
+    tokenEnt.NodeId := Token.NodeId;
+    tokenEnt.Instance := GetInstanceEntity(Manager);
+    Manager.Save(tokenEnt);
+  finally
+    Manager.Free;
+  end;
 end;
 
-procedure TAureliusInstanceData.SaveVariable(InstanceVar: TVariableEntity; Value: TValue);
+procedure TAureliusInstanceData.FillVariable(InstanceVar: TVariableEntity; Value: TValue);
 var
   dataType: TOctopusDataType;
 begin
   dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
-
   InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
   InstanceVar.ValueType := dataType.Name;
-
-  FManager.SaveOrUpdate(InstanceVar);
 end;
 
 procedure TAureliusInstanceData.SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
@@ -243,51 +301,76 @@ var
 begin
   if FActiveTokens.TryGetValue(Token, tokenEnt) then
   begin
-    varEnt := FManager.Find<TVariableEntity>
-      .Where((Linq['Instance'] = FInstance.Id)
-         and (Linq['Token'] = tokenEnt.Id)
-         and (Linq['Name'] = Name))
-      .UniqueResult;
+    Manager := CreateManager;
+    try
+      varEnt := Manager.Find<TVariableEntity>
+        .CreateAlias('Instance', 'i')
+        .CreateAlias('Token', 't')
+        .Where((Linq['i.Id'] = FInstanceId)
+           and (Linq['t.Id'] = tokenEnt.Id)
+           and (Linq['Name'] = Name))
+        .UniqueResult;
 
-    if varEnt = nil then
-    begin
-      varEnt := TVariableEntity.Create;
-      varEnt.Instance := FInstance;
-      varEnt.Token := tokenEnt;
-      varEnt.Name := Name;
+      if varEnt = nil then
+      begin
+        varEnt := TVariableEntity.Create;
+        Manager.AddToGarbage(varEnt);
+        varEnt.Instance := GetInstanceEntity(Manager);
+        varEnt.Token := tokenEnt;
+        varEnt.Name := Name;
+        FillVariable(varEnt, Value);
+        Manager.Save(varEnt);
+      end
+      else
+      begin
+        FillVariable(varEnt, Value);
+        Manager.Flush(varEnt);
+      end;
+    finally
+      Manager.Free;
     end;
-
-    SaveVariable(varEnt, Value);
   end;
 end;
 
 procedure TAureliusInstanceData.SetVariable(const Name: string; const Value: TValue);
 var
   varEnt: TVariableEntity;
+  Manager: TObjectManager;
 begin
-  varEnt := FManager.Find<TVariableEntity>
-    .Where((Linq['Instance'] = FInstance.Id)
-       and (Linq['Token'].IsNull)
-       and (Linq['Name'] = Name))
-    .UniqueResult;
+  Manager := CreateManager;
+  try
+    varEnt := Manager.Find<TVariableEntity>
+      .CreateAlias('Instance', 'i')
+      .CreateAlias('Token', 't')
+      .Where((Linq['i.Id'] = FInstanceId)
+         and (Linq['t.Id'].IsNull)
+         and (Linq['Name'] = Name))
+      .UniqueResult;
 
-  if varEnt = nil then
-  begin
-    varEnt := TVariableEntity.Create;
-    varEnt.Instance := FInstance;
-    varEnt.Name := Name;
+    if varEnt = nil then
+    begin
+      varEnt := TVariableEntity.Create;
+      Manager.AddToGarbage(varEnt);
+      varEnt.Instance := GetInstanceEntity(Manager);
+      varEnt.Name := Name;
+      FillVariable(varEnt, Value);
+      Manager.Save(varEnt);
+    end
+    else
+    begin
+      FillVariable(varEnt, Value);
+      Manager.Flush(varEnt);
+    end;
+  finally
+    Manager.Free;
   end;
-
-  SaveVariable(varEnt, Value);
 end;
 
 function TAureliusInstanceData.TokenFromEntity(InstanceToken: TTokenEntity): TToken;
 begin
-  result := TToken.Create;
-//  if not InstanceToken.TransitionId.IsNull then
-//    result.Transition := FProcess.GetTransition(InstanceToken.TransitionId)
-//  else
-//    result.Node := FProcess.GetNode(InstanceToken.NodeId);
+  Result := TToken.Create;
+  Result.TransitionId := InstanceToken.TransitionId;
+  Result.NodeId := InstanceToken.NodeId;
 end;
 
 function TAureliusInstanceData.VariableValue(InstanceVar: TVariableEntity): TValue;
@@ -323,9 +406,14 @@ var
 begin
   Manager := CreateManager;
   try
-    Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
-//    if Definition = nil then
-//      raise EOctopusDefinitionNotFound.Create(ProcessId);
+    if ProcessId <> '' then
+    begin
+      Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
+      if Definition = nil then
+        raise EOctopusDefinitionNotFound.Create(ProcessId);
+    end
+    else
+      Definition := nil;
 
     Instance := TProcessInstanceEntity.Create;
     Manager.AddToGarbage(Instance);
@@ -333,7 +421,7 @@ begin
     Instance.ProcessDefinition := Definition;
     Manager.Save(Instance);
 
-    Result := TAureliusInstanceData.Create(Pool.GetConnection, Instance.Id);
+    Result := TAureliusInstanceData.Create(Pool, Instance.Id);
   finally
     Manager.Free;
   end;
@@ -343,7 +431,33 @@ end;
 
 function TAureliusRepository.GetDefinition(
   const ProcessId: string): TWorkflowProcess;
+var
+  Manager: TObjectManager;
+  Definition: TProcessDefinitionEntity;
 begin
+  Result := nil;
+  if Assigned(FOnGetProcessFromId) then
+  begin
+    FOnGetProcessFromId(ProcessId, Result);
+    if Result <> nil then Exit;
+  end;
+
+  Manager := CreateManager;
+  try
+    Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
+    if Definition = nil then
+      raise EOctopusDefinitionNotFound.Create(ProcessId);
+
+    if Definition.Process.AsUnicodeString <> '' then
+    begin
+      Result := TWorkflowDeserializer.ProcessFromJson(Definition.Process.AsUnicodeString);
+      Exit;
+    end;
+
+    raise EOctopusException.CreateFmt('Could not retrieve process definition "%s"', [ProcessId]);
+  finally
+    Manager.Free;
+  end;
 end;
 
 function TAureliusRepository.PublishDefinition(const Name: string;
@@ -361,7 +475,10 @@ begin
       .Where(Linq['Name'].ILike(Name))
       .UniqueValue;
     try
-      NextVersion := VersionResult.Values[0] + 1;
+      if VarIsNull(VersionResult.Values[0]) then
+        NextVersion := 1
+      else
+        NextVersion := VersionResult.Values[0] + 1;
     finally
       VersionResult.Free;
     end;
@@ -372,7 +489,8 @@ begin
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
     Definition.CreatedOn := Now;
-    Definition.Process.AsUnicodeString :=  TWorkflowSerializer.ProcessToJson(Process);
+    if Process <> nil then
+      Definition.Process.AsUnicodeString :=  TWorkflowSerializer.ProcessToJson(Process);
     Manager.Save(Definition);
     Result := Definition.Id;
   finally

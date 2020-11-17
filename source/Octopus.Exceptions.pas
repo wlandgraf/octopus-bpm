@@ -29,6 +29,11 @@ type
     constructor Create(const ElementId: string);
   end;
 
+  EOctopusInstanceNotFound = class(EOctopusException)
+  public
+    constructor Create(const InstanceId: string);
+  end;
+
 implementation
 
 uses
@@ -60,6 +65,13 @@ end;
 constructor EOctopusElementNotFound.Create(const ElementId: string);
 begin
   inherited CreateFmt(SErrorElementNotFound, [ElementId]);
+end;
+
+{ EOctopusInstanceNotFound }
+
+constructor EOctopusInstanceNotFound.Create(const InstanceId: string);
+begin
+  inherited CreateFmt(SErrorInstanceNotFound, [InstanceId]);
 end;
 
 end.

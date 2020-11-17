@@ -22,6 +22,7 @@ resourcestring
   SErrorDefinitionNotFound       = 'Process definition "%s" not found';
   SErrorNodeNotFound             = 'Node "%s" not found';
   SErrorTransitionNotFound       = 'Transition "%s" not found';
+  SErrorInstanceNotFound         = 'Process instance "%s" not found';
 
 implementation
 

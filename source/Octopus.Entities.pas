@@ -69,7 +69,7 @@ type
     FId: string;
     [Version]
     FRowVersion: Integer;
-    [Association([TAssociationProp.Lazy], CascadeTypeAllButRemove)]
+    [Association([TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_DEFINITION_ID', [])]
     FProcessDefinition: Proxy<TProcessDefinitionEntity>;
     FCreatedOn: TDateTime;
@@ -101,7 +101,7 @@ type
     FId: string;
     [Version]
     FRowVersion: Integer;
-    [Association([TAssociationProp.Required, TAssociationProp.Lazy], CascadeTypeAllButRemove)]
+    [Association([TAssociationProp.Required, TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_INSTANCE_ID', [TColumnProp.Required])]
     FInstance: Proxy<TProcessInstanceEntity>;
     FTransitionId: Nullable<string>;
@@ -142,11 +142,11 @@ type
 
     FValueType: string;
 
-    [Association([TAssociationProp.Required, TAssociationProp.Lazy], CascadeTypeAllButRemove)]
+    [Association([TAssociationProp.Required, TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_INSTANCE_ID', [TColumnProp.Required])]
     FInstance: Proxy<TProcessInstanceEntity>;
 
-    [Association([TAssociationProp.Lazy], CascadeTypeAllButRemove)]
+    [Association([TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('TOKEN_ID', [])]
     FToken: Proxy<TTokenEntity>;
     function GetInstance: TProcessInstanceEntity;
