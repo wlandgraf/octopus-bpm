@@ -207,8 +207,7 @@ begin
   // consume one token from each incoming transition that has a token
   for transition in IncomingTransitions do
   begin
-    // iterate from oldest to newest, to get the first token arriving to the node
-    for I := Length(tokens) - 1 downto 0 do
+    for I := 0 to Length(tokens) - 1 do
       if tokens[I].TransitionId = transition.Id then
       begin
         Context.Instance.RemoveToken(tokens[I]);
@@ -253,7 +252,7 @@ begin
   for transition in IncomingTransitions do
   begin
     // iterate from oldest to newest, to get the first token arriving to the node
-    for I := Length(tokens) - 1 downto 0 do
+    for I := 0 to Length(tokens) - 1 do
       if tokens[I].TransitionId = transition.Id then
       begin
         Context.Instance.RemoveToken(tokens[I]);

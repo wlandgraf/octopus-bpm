@@ -233,7 +233,7 @@ begin
     tokenList := Manager.Find<TTokenEntity>
       .CreateAlias('Instance', 'i')
       .Where(Linq['i.Id'] = FInstanceId)
-      .OrderBy(Linq['CreatedOn'], False)
+      .OrderBy(Linq['CreatedOn'])
       .List;
 
     SetLength(Result, tokenList.Count);
