@@ -19,8 +19,8 @@ type
     FInstanceChecked: boolean;
     FProcessedTokens: TList<string>;
     procedure PrepareExecution;
-    function ProcessNode(Node: TFlowNode): boolean;
-    function ProcessToken(Token: TToken): boolean;
+    procedure ProcessNode(Node: TFlowNode);
+    procedure ProcessToken(Token: TToken);
   public
     constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData);
     destructor Destroy; override;
@@ -55,39 +55,31 @@ end;
 
 procedure TWorkflowRunner.Execute;
 var
-  tokens: TArray<TToken>;
-  token: TToken;
-  done: boolean;
+  tempToken, token: TToken;
 begin
   PrepareExecution;
 
   repeat
-    done := true;
-    tokens := FInstance.GetTokens;
-
-    for token in tokens do
-    begin
-      if token.Status = TTokenStatus.Active then
+    // Find next active token to process
+    token := nil;
+    for tempToken in FInstance.GetTokens do
+      if tempToken.Status = TTokenStatus.Active then
       begin
-        // Avoid infinite loop
-        if FProcessedTokens.Contains(Token.Id) then
-          raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
-
-        FProcessedTokens.Add(token.Id);
-        done := false;
-        if ProcessToken(token) then
-        begin
-          FStatus := TRunnerStatus.Processed;
-          break;
-        end
-        else
-        begin // TODO: error handling
-          FStatus := TRunnerStatus.Error;
-          exit;
-        end;
+        token := tempToken;
+        break;
       end;
-    end;
-  until done;
+
+    // if no active token remaining, we're done
+    if token = nil then Exit;
+
+    // Avoid infinite loop
+    if FProcessedTokens.Contains(Token.Id) then
+      raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
+    FProcessedTokens.Add(token.Id);
+
+    ProcessToken(token);
+    FStatus := TRunnerStatus.Processed;
+  until False;
 end;
 
 procedure TWorkflowRunner.PrepareExecution;
@@ -105,22 +97,21 @@ begin
   FProcessedTokens.Clear;
 end;
 
-function TWorkflowRunner.ProcessNode(Node: TFlowNode): boolean;
+procedure TWorkflowRunner.ProcessNode(Node: TFlowNode);
 var
   context: TExecutionContext;
 begin
   context := TExecutionContext.Create(FInstance, FProcess, Node);
   try
     Node.Execute(context);
-    result := not context.Error;
   finally
     context.Free;
   end;
 end;
 
-function TWorkflowRunner.ProcessToken(Token: TToken): boolean;
+procedure TWorkflowRunner.ProcessToken(Token: TToken);
 begin
-  result := ProcessNode(FProcess.GetNode(token.NodeId));
+  ProcessNode(FProcess.GetNode(token.NodeId));
 end;
 
 end.

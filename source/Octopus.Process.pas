@@ -70,7 +70,6 @@ type
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function GetTokens: TArray<TToken>; overload;
-    function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -163,7 +162,6 @@ type
     FInstance: IProcessInstanceData;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
-    FError: boolean;
   public
     constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
     function GetTokens(Predicate: TTokenPredicateFunc): TArray<TToken>;
@@ -173,7 +171,6 @@ type
     property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
     property Node: TFlowNode read FNode;
-    property Error: boolean read FError write FError;
   end;
 
   TValidationResult = class
@@ -409,7 +406,6 @@ begin
   FInstance := AInstance;
   FProcess := AProcess;
   FNode := ANode;
-  FError := false;
 end;
 
 function TExecutionContext.LastData(ANode: TFlowNode; const Variable: string): TValue;

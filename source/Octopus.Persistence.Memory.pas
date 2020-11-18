@@ -32,7 +32,6 @@ type
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function GetTokens: TArray<TToken>; overload;
-    function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -123,19 +122,6 @@ end;
 function TMemoryInstanceData.GetTokens: TArray<TToken>;
 begin
   result := FTokens.ToArray;
-end;
-
-function TMemoryInstanceData.GetTokens(Node: TFlowNode): TArray<TToken>;
-var
-  token: TToken;
-begin
-  SetLength(result, 0);
-  for token in FTokens do
-    if token.NodeId = Node.Id then
-    begin
-      SetLength(result, Length(result) + 1);
-      result[Length(result) - 1] := token;
-    end;
 end;
 
 function TMemoryInstanceData.GetVariable(const Name: string): TValue;

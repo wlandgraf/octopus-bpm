@@ -24,7 +24,6 @@ type
     FToken: TToken;
     FDone: boolean;
     FInstance: IProcessInstanceData;
-    FError: boolean;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
     function GetVariable(const Name: string): TValue;
@@ -33,7 +32,6 @@ type
     procedure SetLocalVariable(const Name: string; Value: TValue);
     property Token: TToken read FToken;
     property Done: boolean read FDone write FDone;
-    property Error: boolean read FError write FError;
   end;
 
   TActivityClass = class of TActivity;
@@ -73,12 +71,7 @@ var
   token: TToken;
 begin
   for token in Context.GetTokens(TTokens.Active(Self.Id)) do
-  begin
     ExecuteActivityInstance(token, Context);
-
-    if Context.Error then // TODO: error handling
-      exit;
-  end;
 end;
 
 procedure TActivity.ExecuteActivityInstance(Token: TToken; Context: TExecutionContext);
@@ -88,12 +81,6 @@ begin
   aec := TActivityExecutionContext.Create(Context, Token);
   try
     ExecuteInstance(aec);
-
-    if aec.Error then // TODO: error handling
-    begin
-      Context.Error := aec.Error;
-      exit;
-    end;
 
     if aec.Done then
     begin
@@ -120,7 +107,6 @@ begin
   FInstance := AContext.Instance;
   FToken := AToken;
   FDone := true;
-  FError := false;
 end;
 
 function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;

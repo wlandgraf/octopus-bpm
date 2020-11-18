@@ -44,7 +44,6 @@ type
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function GetTokens: TArray<TToken>; overload;
-    function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -234,30 +233,6 @@ begin
       .CreateAlias('Instance', 'i')
       .Where(Linq['i.Id'] = FInstanceId)
       .OrderBy(Linq['CreatedOn'])
-      .List;
-
-    SetLength(Result, tokenList.Count);
-    for I := 0 to tokenList.Count - 1 do
-      Result[I] := TokenFromEntity(tokenList[I]);
-  finally
-    Manager.Free;
-  end;
-end;
-
-function TAureliusInstanceData.GetTokens(Node: TFlowNode): TArray<TToken>;
-var
-  tokenList: TList<TTokenEntity>;
-  Manager: TObjectManager;
-  I: Integer;
-begin
-  Manager := CreateManager;
-  try
-    // Most recent tokens first
-    tokenList := Manager.Find<TTokenEntity>
-      .CreateAlias('Instance', 'i')
-      .Where(Linq['i.Id'] = FInstanceId)
-      .Where(Linq['NodeId'] = Node.Id)
-      .OrderBy(Linq['CreatedOn'], False)
       .List;
 
     SetLength(Result, tokenList.Count);
