@@ -72,15 +72,12 @@ procedure TActivity.Execute(Context: TExecutionContext);
 var
   token: TToken;
 begin
-  token := Context.GetIncomingToken;
-  while token <> nil do
+  for token in Context.GetTokens(TTokens.Active(Self.Id)) do
   begin
     ExecuteActivityInstance(token, Context);
 
     if Context.Error then // TODO: error handling
       exit;
-
-    token := Context.GetIncomingToken;
   end;
 end;
 

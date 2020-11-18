@@ -56,7 +56,7 @@ end;
 
 procedure TEvent.Execute(Context: TExecutionContext);
 begin
-  ExecuteAllTokens(Context, true);
+  FlowTokens(Context);
 end;
 
 end.

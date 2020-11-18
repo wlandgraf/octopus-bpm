@@ -49,8 +49,9 @@ procedure TGateway.Execute(Context: TExecutionContext);
 begin
   if Active(Context) then
     Trigger(Context)
-  else // if the gateway is not active, mark every incoming token to persist
-    ExecuteAllTokens(Context, false);
+  else
+     // if the gateway is not active, mark every incoming token to persist
+    DeactivateTokens(Context);
 end;
 
 function TGateway.FindTransitionToken(Transition: TTransition; Tokens: TArray<TToken>): boolean;
@@ -136,7 +137,7 @@ end;
 function TExclusiveGateway.Active(Context: TExecutionContext): boolean;
 begin
   // exclusive gateway is activated for any incoming token
-  result := Context.GetIncomingToken <> nil;
+  Result := Length(Context.GetTokens(TTokens.Active(Self.Id))) > 0;
 end;
 
 procedure TExclusiveGateway.Trigger(Context: TExecutionContext);
@@ -145,8 +146,7 @@ var
   done: boolean;
 begin
   // for each incoming token
-  token := Context.GetIncomingToken;
-  while token <> nil do
+  for token in Context.GetTokens(TTokens.Active(Self.Id)) do
   begin
     // generate a new token for the first outgoing transition evaluated as true
     done := false;
@@ -168,8 +168,6 @@ begin
       Context.Instance.RemoveToken(token)
     else
       Context.Instance.DeactivateToken(token);
-
-    token := Context.GetIncomingToken;
   end;
 end;
 
@@ -184,15 +182,15 @@ begin
   // - at least one incoming transition has at least one token; and
   // - for each empty incoming transition, there is no token in the graph anywhere upstream of this sequence flow
   // (unless there's a path from the token to a non-empty incoming transition of the gateway)
-  result := Context.GetIncomingToken <> nil;
-  if result then
+  Result := Length(Context.GetTokens(TTokens.Pending(Self.Id))) > 0;
+  if Result then
   begin
-    tokens := Context.Instance.GetTokens;
+    tokens := Context.GetTokens(TTokens.Pending());
     for transition in IncomingTransitions do
       if not FindTransitionToken(transition, tokens) and FindUpstreamToken(transition, tokens) then
       begin
-        result := false;
-        break;
+        Result := False;
+        Break;
       end;
   end;
 end;
@@ -200,14 +198,22 @@ end;
 procedure TInclusiveGateway.Trigger(Context: TExecutionContext);
 var
   transition: TTransition;
-  token: TToken;
+  tokens: TArray<TToken>;
+  I: Integer;
 begin
+  // get all pending tokens for the node
+  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
+
   // consume one token from each incoming transition that has a token
   for transition in IncomingTransitions do
   begin
-    token := Context.GetIncomingToken(transition);
-    if token <> nil then
-      Context.Instance.RemoveToken(token);
+    // iterate from oldest to newest, to get the first token arriving to the node
+    for I := Length(tokens) - 1 downto 0 do
+      if tokens[I].TransitionId = transition.Id then
+      begin
+        Context.Instance.RemoveToken(tokens[I]);
+        break;
+      end;
   end;
 
   // generate a new token for each outgoing transition evaluated as true
@@ -224,25 +230,35 @@ end;
 function TParallelGateway.Active(Context: TExecutionContext): boolean;
 var
   transition: TTransition;
+  tokens: TArray<TToken>;
 begin
-  // parallel gateway is activated if there is at least one token on each incoming transition
+  // parallel gateway is activated if there is at least one pending token on each incoming transition
+  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
   for transition in IncomingTransitions do
-    if Context.GetIncomingToken(transition) = nil then
-      exit(false);
-  result := true;
+    if not FindTransitionToken(transition, tokens) then
+      Exit(False);
+  Result := True;
 end;
 
 procedure TParallelGateway.Trigger(Context: TExecutionContext);
 var
   transition: TTransition;
-  token: TToken;
+  tokens: TArray<TToken>;
+  I: Integer;
 begin
-  // consume one token from each incoming transition
+  // get all pending tokens for the node
+  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
+
+  // consume one token from each incoming transition that has a token
   for transition in IncomingTransitions do
   begin
-    token := Context.GetIncomingToken(transition);
-    if token <> nil then
-      Context.Instance.RemoveToken(token);
+    // iterate from oldest to newest, to get the first token arriving to the node
+    for I := Length(tokens) - 1 downto 0 do
+      if tokens[I].TransitionId = transition.Id then
+      begin
+        Context.Instance.RemoveToken(tokens[I]);
+        break;
+      end;
   end;
 
   // generate a new token for each outgoing transition (no evaluation)

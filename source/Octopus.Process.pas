@@ -87,7 +87,8 @@ type
     FOutgoingTransitions: TList<TTransition>;
   protected
     procedure ScanTransitions(Proc: TProc<TTransition>);
-    procedure ExecuteAllTokens(Context: TExecutionContext; Flow: boolean);
+    procedure FlowTokens(Context: TExecutionContext);
+    procedure DeactivateTokens(Context: TExecutionContext);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -155,6 +156,8 @@ type
     property Status: TTokenStatus read FStatus write FStatus;
   end;
 
+  TTokenPredicateFunc = reference to function(Token: TToken): Boolean;
+
   TExecutionContext = class
   private
     FInstance: IProcessInstanceData;
@@ -163,8 +166,7 @@ type
     FError: boolean;
   public
     constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
-    function GetIncomingToken: TToken; overload;
-    function GetIncomingToken(Transition: TTransition): TToken; overload;
+    function GetTokens(Predicate: TTokenPredicateFunc): TArray<TToken>;
     function LastData(const Variable: string): TValue; overload;
     function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
     function LastData(const NodeId, Variable: string): TValue; overload;
@@ -194,6 +196,12 @@ type
     destructor Destroy; override;
     procedure AddError(AElement: TFlowElement; const AMessage: string);
     property Results: TList<TValidationResult> read FResults;
+  end;
+
+  TTokens = class
+  public
+    class function Pending(const NodeId: string = ''): TTokenPredicateFunc; static;
+    class function Active(const NodeId: string): TTokenPredicateFunc; static;
   end;
 
 implementation
@@ -287,6 +295,14 @@ begin
   FOutgoingTransitions := TList<TTransition>.Create;
 end;
 
+procedure TFlowNode.DeactivateTokens(Context: TExecutionContext);
+var
+  token: TToken;
+begin
+  for token in Context.GetTokens(TTokens.Active(Self.Id)) do
+    Context.Instance.DeactivateToken(token);
+end;
+
 destructor TFlowNode.Destroy;
 begin
   FIncomingTransitions.Free;
@@ -309,28 +325,19 @@ begin
   end;
 end;
 
-procedure TFlowNode.ExecuteAllTokens(Context: TExecutionContext; Flow: boolean);
+procedure TFlowNode.FlowTokens(Context: TExecutionContext);
 var
   token: TToken;
 begin
-  token := Context.GetIncomingToken;
-  while token <> nil do
+  for token in Context.GetTokens(TTokens.Pending(Self.Id)) do
   begin
-    if Flow then
-    begin
-      Context.Instance.RemoveToken(token);
-
-      ScanTransitions(
-        procedure(Transition: TTransition)
-        begin
-          if Transition.Evaluate(Context) then
-            Context.Instance.AddToken(Transition);
-        end);
-    end
-    else
-      Context.Instance.DeactivateToken(token);
-
-    token := Context.GetIncomingToken;
+    Context.Instance.RemoveToken(token);
+    ScanTransitions(
+      procedure(Transition: TTransition)
+      begin
+        if Transition.Evaluate(Context) then
+          Context.Instance.AddToken(Transition);
+      end);
   end;
 end;
 
@@ -405,16 +412,6 @@ begin
   FError := false;
 end;
 
-function TExecutionContext.GetIncomingToken: TToken;
-var
-  token: TToken;
-begin
-  for token in FInstance.GetTokens(Node) do
-    if token.Status = TTokenStatus.Active then
-      exit(token);
-  result := nil;
-end;
-
 function TExecutionContext.LastData(ANode: TFlowNode; const Variable: string): TValue;
 var
   token: TToken;
@@ -426,24 +423,33 @@ begin
     result := TValue.Empty;
 end;
 
+function TExecutionContext.GetTokens(
+  Predicate: TTokenPredicateFunc): TArray<TToken>;
+var
+  tokens: TArray<TToken>;
+  Total: Integer;
+  I: Integer;
+begin
+  tokens := Instance.GetTokens;
+  SetLength(Result, Length(tokens));
+  Total := 0;
+  for I := 0 to Length(tokens) - 1 do
+    if not Assigned(Predicate) or Predicate(tokens[I]) then
+    begin
+      Result[Total] := tokens[I];
+      Inc(Total);
+    end;
+  SetLength(Result, Total);
+end;
+
 function TExecutionContext.LastData(const NodeId, Variable: string): TValue;
 begin
   result := LastData(Process.GetNode(NodeId), Variable);
 end;
 
-function TExecutionContext.GetIncomingToken(Transition: TTransition): TToken;
-var
-  token: TToken;
-begin
-  for token in FInstance.GetTokens(Node) do
-    if (token.Status = TTokenStatus.Active) and (token.TransitionId = Transition.Id) then
-      exit(token);
-  result := nil;
-end;
-
 function TExecutionContext.LastData(const Variable: string): TValue;
 begin
-  result := LastData(Node, Variable);
+  Result := LastData(Node, Variable);
 end;
 
 { TValidationResult }
@@ -518,6 +524,27 @@ constructor Persistent.Create(const APropName: string);
 begin
   inherited Create;
   FPropName := APropName;
+end;
+
+{ TTokens }
+
+class function TTokens.Active(const NodeId: string): TTokenPredicateFunc;
+begin
+  Result :=
+    function(Token: TToken): Boolean
+    begin
+      Result := (Token.Status = TTokenStatus.Active) and (Token.NodeId = NodeId);
+    end;
+end;
+
+class function TTokens.Pending(const NodeId: string = ''): TTokenPredicateFunc;
+begin
+  Result :=
+    function(Token: TToken): Boolean
+    begin
+      Result := (Token.Status <> TTokenStatus.Finished) and
+        ((NodeId = '') or (Token.NodeId = NodeId));
+    end;
 end;
 
 end.
