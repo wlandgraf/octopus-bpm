@@ -69,10 +69,11 @@ type
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
-    function CountTokens: integer;
     function GetTokens: TArray<TToken>; overload;
     function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
+    procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
+    procedure DeactivateToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): TValue;
     procedure SetVariable(const Name: string; const Value: TValue);
@@ -159,16 +160,14 @@ type
     FInstance: IProcessInstanceData;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
-    FPersistedTokens: TList<TToken>;
     FError: boolean;
   public
-    constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode; APersistedTokens: TList<TToken>);
+    constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
     function GetIncomingToken: TToken; overload;
     function GetIncomingToken(Transition: TTransition): TToken; overload;
     function LastData(const Variable: string): TValue; overload;
     function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
     function LastData(const NodeId, Variable: string): TValue; overload;
-    procedure PersistToken(Token: TToken);
     property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
     property Node: TFlowNode read FNode;
@@ -329,7 +328,7 @@ begin
         end);
     end
     else
-      Context.PersistToken(token);
+      Context.Instance.DeactivateToken(token);
 
     token := Context.GetIncomingToken;
   end;
@@ -397,12 +396,12 @@ end;
 
 { TExecutionContext }
 
-constructor TExecutionContext.Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode; APersistedTokens: TList<TToken>);
+constructor TExecutionContext.Create(AInstance: IProcessInstanceData;
+  AProcess: TWorkflowProcess; ANode: TFlowNode);
 begin
   FInstance := AInstance;
   FProcess := AProcess;
   FNode := ANode;
-  FPersistedTokens := APersistedTokens;
   FError := false;
 end;
 
@@ -411,7 +410,7 @@ var
   token: TToken;
 begin
   for token in FInstance.GetTokens(Node) do
-    if not FPersistedTokens.Contains(token) then
+    if token.Status = TTokenStatus.Active then
       exit(token);
   result := nil;
 end;
@@ -432,17 +431,12 @@ begin
   result := LastData(Process.GetNode(NodeId), Variable);
 end;
 
-procedure TExecutionContext.PersistToken(Token: TToken);
-begin
-  FPersistedTokens.Add(Token);
-end;
-
 function TExecutionContext.GetIncomingToken(Transition: TTransition): TToken;
 var
   token: TToken;
 begin
   for token in FInstance.GetTokens(Node) do
-    if not FPersistedTokens.Contains(token) and (token.TransitionId = Transition.Id) then
+    if (token.Status = TTokenStatus.Active) and (token.TransitionId = Transition.Id) then
       exit(token);
   result := nil;
 end;

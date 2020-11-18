@@ -31,10 +31,11 @@ type
     { IProcessInstanceData methods }
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
-    function CountTokens: integer;
     function GetTokens: TArray<TToken>; overload;
     function GetTokens(Node: TFlowNode): TArray<TToken>; overload;
+    procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
+    procedure DeactivateToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): TValue;
     procedure SetVariable(const Name: string; const Value: TValue);
@@ -79,6 +80,11 @@ begin
   FTokens.Add(token);
 end;
 
+procedure TMemoryInstanceData.ActivateToken(Token: TToken);
+begin
+
+end;
+
 procedure TMemoryInstanceData.AddToken(Transition: TTransition);
 var
   token: TToken;
@@ -89,16 +95,16 @@ begin
   FTokens.Add(token);
 end;
 
-function TMemoryInstanceData.CountTokens: integer;
-begin
-  result := FTokens.Count;
-end;
-
 constructor TMemoryInstanceData.Create;
 begin
   FTokens := TObjectList<TToken>.Create;
   FRemovedTokens := TObjectList<TToken>.Create;
   FVariables := TObjectList<TInstanceVar>.Create;
+end;
+
+procedure TMemoryInstanceData.DeactivateToken(Token: TToken);
+begin
+
 end;
 
 destructor TMemoryInstanceData.Destroy;

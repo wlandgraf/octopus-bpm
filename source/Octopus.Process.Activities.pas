@@ -110,7 +110,7 @@ begin
         end);
     end
     else
-      Context.PersistToken(Token);
+      Context.Instance.DeactivateToken(Token);
   finally
     aec.Free;
   end;

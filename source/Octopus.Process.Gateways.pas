@@ -167,7 +167,7 @@ begin
     if done then
       Context.Instance.RemoveToken(token)
     else
-      Context.PersistToken(token);
+      Context.Instance.DeactivateToken(token);
 
     token := Context.GetIncomingToken;
   end;

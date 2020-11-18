@@ -145,6 +145,7 @@ type
     [Column('_VALUE', [], 65536)]
     FValue: string;
 
+    [Column('VALUE_TYPE', [], 255)]
     FValueType: string;
 
     [Association([TAssociationProp.Required, TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]

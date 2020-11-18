@@ -17,7 +17,7 @@ type
     FInstance: IProcessInstanceData;
     FStatus: TRunnerStatus;
     FInstanceChecked: boolean;
-    FPersistedTokens: TList<TToken>;
+    FProcessedTokens: TList<string>;
     procedure PrepareExecution;
     function ProcessNode(Node: TFlowNode): boolean;
     function ProcessToken(Token: TToken): boolean;
@@ -30,21 +30,26 @@ type
 
 implementation
 
+uses
+  Octopus.Exceptions,
+  Octopus.Resources;
+
 { TWorkflowRunner }
 
 constructor TWorkflowRunner.Create(Process: TWorkflowProcess; Instance: IProcessInstanceData);
 begin
+  inherited Create;
+  FProcessedTokens := TList<string>.Create;
   FProcess := Process;
   FInstance := Instance;
 
-  FPersistedTokens := TList<TToken>.Create;
   FInstanceChecked := false;
   FStatus := TRunnerStatus.None;
 end;
 
 destructor TWorkflowRunner.Destroy;
 begin
-  FPersistedTokens.Free;
+  FProcessedTokens.Free;
   inherited;
 end;
 
@@ -62,8 +67,13 @@ begin
 
     for token in tokens do
     begin
-      if not FPersistedTokens.Contains(token) then
+      if token.Status = TTokenStatus.Active then
       begin
+        // Avoid infinite loop
+        if FProcessedTokens.Contains(Token.Id) then
+          raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
+
+        FProcessedTokens.Add(token.Id);
         done := false;
         if ProcessToken(token) then
         begin
@@ -83,17 +93,23 @@ end;
 procedure TWorkflowRunner.PrepareExecution;
 var
   node: TFlowNode;
+  token: TToken;
 begin
-  FPersistedTokens.Clear;
+  for token in FInstance.GetTokens do
+    if token.Status = TTokenStatus.Waiting then
+      FInstance.ActivateToken(token);
+
   for node in FProcess.Nodes do
     node.EnumTransitions(FProcess);
+
+  FProcessedTokens.Clear;
 end;
 
 function TWorkflowRunner.ProcessNode(Node: TFlowNode): boolean;
 var
   context: TExecutionContext;
 begin
-  context := TExecutionContext.Create(FInstance, FProcess, Node, FPersistedTokens);
+  context := TExecutionContext.Create(FInstance, FProcess, Node);
   try
     Node.Execute(context);
     result := not context.Error;
