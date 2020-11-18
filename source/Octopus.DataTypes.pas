@@ -67,6 +67,7 @@ type
 implementation
 
 uses
+  Octopus.Exceptions,
   Octopus.Resources;
 
 { TOctopusDataTypes }
@@ -116,7 +117,7 @@ function TOctopusDataTypes.Get(NativeType: PTypeInfo): TOctopusDataType;
 begin
   result := Find(NativeType);
   if result = nil then
-    raise Exception.CreateFmt(SErrorUnsupportedDataType, [NativeTypeName(NativeType)]);
+    raise EOctopusException.CreateFmt(SErrorUnsupportedDataType, [NativeTypeName(NativeType)]);
 end;
 
 function TOctopusDataTypes.NativeTypeName(AType: PTypeInfo): string;
@@ -125,7 +126,10 @@ var
 begin
   context := TRttiContext.Create;
   try
-    result := context.GetType(AType).QualifiedName;
+    if AType = nil then
+      Result := 'unknown'
+    else
+      Result := context.GetType(AType).QualifiedName;
   finally
     context.Free;
   end;
