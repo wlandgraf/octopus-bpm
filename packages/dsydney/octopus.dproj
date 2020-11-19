@@ -133,7 +133,6 @@
         <DCCReference Include="..\..\source\Octopus.Repository.pas"/>
         <DCCReference Include="..\..\source\Octopus.Resources.pas"/>
         <DCCReference Include="..\..\source\Octopus.Validator.pas"/>
-        <DCCReference Include="..\..\source\Octopus.Persistence.Memory.pas"/>
         <DCCReference Include="..\..\source\Octopus.Persistence.Common.pas"/>
         <DCCReference Include="..\..\source\Octopus.Exceptions.pas"/>
         <BuildConfiguration Include="Release">
