@@ -8,7 +8,7 @@ uses
 type
   IOctopusRepository = interface
   ['{B56548F7-8E2B-441E-AE2A-9C04EED98B7D}']
-    function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+    function PublishDefinition(const Name, Process: string): string;
     function GetDefinition(const ProcessId: string): TWorkflowProcess;
   end;
 
@@ -20,8 +20,7 @@ type
 
   IOctopusProcessFactory = interface
   ['{A668CF5F-A5FE-499F-A54C-4995E9FCCDC1}']
-    procedure GetProcessDefinition(const ProcessName: string; Version: Integer;
-      var Process: TWorkflowProcess);
+    procedure GetProcessDefinition(const ProcessId: string; var Process: TWorkflowProcess);
   end;
 
 implementation

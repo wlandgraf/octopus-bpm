@@ -67,6 +67,7 @@ type
 
   IProcessInstanceData = interface
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
+    function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function GetTokens: TArray<TToken>; overload;

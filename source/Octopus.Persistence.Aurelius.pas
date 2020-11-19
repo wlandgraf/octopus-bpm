@@ -41,6 +41,7 @@ type
     destructor Destroy; override;
   public
     { IProcessInstanceData methods }
+    function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
     function GetTokens: TArray<TToken>; overload;
@@ -59,7 +60,7 @@ type
     FProcessFactory: IOctopusProcessFactory;
   public
     constructor Create(Pool: IDBConnectionPool; ProcessFactory: IOctopusProcessFactory); overload;
-    function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
+    function PublishDefinition(const Name: string; const Process: string): string;
     function GetDefinition(const ProcessId: string): TWorkflowProcess;
   end;
 
@@ -188,6 +189,11 @@ begin
   Result := Manager.Find<TProcessInstanceEntity>(FInstanceId);
   if Result = nil then
     raise EOctopusInstanceNotFound.Create(FInstanceId);
+end;
+
+function TAureliusInstanceData.GetInstanceId: string;
+begin
+  Result := FInstanceId;
 end;
 
 function TAureliusInstanceData.GetLocalVariable(Token: TToken; const Name: string): TValue;
@@ -519,8 +525,7 @@ begin
   FProcessFactory := ProcessFactory;
 end;
 
-function TAureliusRepository.GetDefinition(
-  const ProcessId: string): TWorkflowProcess;
+function TAureliusRepository.GetDefinition(const ProcessId: string): TWorkflowProcess;
 var
   Manager: TObjectManager;
   Definition: TProcessDefinitionEntity;
@@ -536,7 +541,7 @@ begin
       Result := TWorkflowDeserializer.ProcessFromJson(Definition.Process.AsUnicodeString)
     else
     if FProcessFactory <> nil then
-      FProcessFactory.GetProcessDefinition(Definition.Name, Definition.Version, Result);
+      FProcessFactory.GetProcessDefinition(Definition.Id, Result);
 
     if Result = nil then
       raise EOctopusException.CreateFmt('Could not retrieve process definition "%s"', [ProcessId]);
@@ -546,7 +551,7 @@ begin
 end;
 
 function TAureliusRepository.PublishDefinition(const Name: string;
-  Process: TWorkflowProcess): string;
+  const Process: string): string;
 var
   Manager: TObjectManager;
   VersionResult: TCriteriaResult;
@@ -574,8 +579,8 @@ begin
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
     Definition.CreatedOn := Now;
-    if Process <> nil then
-      Definition.Process.AsUnicodeString :=  TWorkflowSerializer.ProcessToJson(Process);
+    if Process <> '' then
+      Definition.Process.AsUnicodeString :=  Process;
     Manager.Save(Definition);
     Result := Definition.Id;
   finally

@@ -24,7 +24,7 @@ type
     property Pool: IDBConnectionPool read FPool;
   public
     { IOctopusEngine methods }
-    function PublishDefinition(const Name: string): string;
+    function PublishDefinition(const Name: string; const Process: string = ''): string;
     function CreateInstance(const ProcessId: string): string;
     procedure RunInstance(const InstanceId: string); overload;
   end;
@@ -51,8 +51,9 @@ var
   Instance: IProcessInstanceData;
   Process: TWorkflowProcess;
 begin
-  Instance := TAureliusInstanceData.Create(Pool, CreateRuntime.CreateInstance(ProcessId));
+  Result := CreateRuntime.CreateInstance(ProcessId);
   Process := CreateRepository.GetDefinition(ProcessId);
+  Instance := TAureliusInstanceData.Create(Pool, Result);
   Process.InitInstance(Instance);
 end;
 
@@ -66,9 +67,9 @@ begin
   Result := TAureliusRuntime.Create(Pool);
 end;
 
-function TAureliusOctopusEngine.PublishDefinition(const Name: string): string;
+function TAureliusOctopusEngine.PublishDefinition(const Name: string; const Process: string = ''): string;
 begin
-  Result := CreateRepository.PublishDefinition(Name, nil);
+  Result := CreateRepository.PublishDefinition(Name, Process);
 end;
 
 procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;
