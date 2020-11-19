@@ -54,20 +54,13 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
-  TProcessFromIdProc = reference to procedure(const ProcessId: string;
-    var Process: TWorkflowProcess);
-  TProcessFromNameProc = reference to procedure(const ProcessName: string;
-    Version: Integer; var Process: TWorkflowProcess);
-
   TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
   strict private
-    FOnGetProcessFromName: TProcessFromNameProc;
-    FOnGetProcessFromId: TProcessFromIdProc;
+    FProcessFactory: IOctopusProcessFactory;
   public
+    constructor Create(Pool: IDBConnectionPool; ProcessFactory: IOctopusProcessFactory); overload;
     function PublishDefinition(const Name: string; Process: TWorkflowProcess): string;
     function GetDefinition(const ProcessId: string): TWorkflowProcess;
-    property OnGetProcessFromId: TProcessFromIdProc read FOnGetProcessFromId write FOnGetProcessFromId;
-    property OnGetProcessFromName: TProcessFromNameProc read FOnGetProcessFromName write FOnGetProcessFromName;
   end;
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
@@ -519,6 +512,13 @@ end;
 
 { TAureliusRepository }
 
+constructor TAureliusRepository.Create(Pool: IDBConnectionPool;
+  ProcessFactory: IOctopusProcessFactory);
+begin
+  inherited Create(Pool);
+  FProcessFactory := ProcessFactory;
+end;
+
 function TAureliusRepository.GetDefinition(
   const ProcessId: string): TWorkflowProcess;
 var
@@ -526,12 +526,6 @@ var
   Definition: TProcessDefinitionEntity;
 begin
   Result := nil;
-  if Assigned(FOnGetProcessFromId) then
-  begin
-    FOnGetProcessFromId(ProcessId, Result);
-    if Result <> nil then Exit;
-  end;
-
   Manager := CreateManager;
   try
     Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
@@ -539,12 +533,13 @@ begin
       raise EOctopusDefinitionNotFound.Create(ProcessId);
 
     if Definition.Process.AsUnicodeString <> '' then
-    begin
-      Result := TWorkflowDeserializer.ProcessFromJson(Definition.Process.AsUnicodeString);
-      Exit;
-    end;
+      Result := TWorkflowDeserializer.ProcessFromJson(Definition.Process.AsUnicodeString)
+    else
+    if FProcessFactory <> nil then
+      FProcessFactory.GetProcessDefinition(Definition.Name, Definition.Version, Result);
 
-    raise EOctopusException.CreateFmt('Could not retrieve process definition "%s"', [ProcessId]);
+    if Result = nil then
+      raise EOctopusException.CreateFmt('Could not retrieve process definition "%s"', [ProcessId]);
   finally
     Manager.Free;
   end;

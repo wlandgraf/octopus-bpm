@@ -14,11 +14,13 @@ type
   TAureliusOctopusEngine = class(TInterfacedObject, IOctopusEngine)
   strict private
     FPool: IDBConnectionPool;
+    FProcessFactory: IOctopusProcessFactory;
     function CreateRepository: IOctopusRepository;
     function CreateRuntime: IOctopusRuntime;
     procedure RunInstance(Process: TWorkflowProcess; Instance: IProcessInstanceData); overload;
   public
-    constructor Create(APool: IDBConnectionPool);
+    constructor Create(APool: IDBConnectionPool); overload;
+    constructor Create(APool: IDBConnectionPool; AProcessFactory: IOctopusProcessFactory); overload;
     property Pool: IDBConnectionPool read FPool;
   public
     { IOctopusEngine methods }
@@ -33,9 +35,15 @@ implementation
 
 constructor TAureliusOctopusEngine.Create(APool: IDBConnectionPool);
 begin
+  Create(APool, nil);
+end;
+
+constructor TAureliusOctopusEngine.Create(APool: IDBConnectionPool;
+  AProcessFactory: IOctopusProcessFactory);
+begin
   inherited Create;
   FPool := APool;
-
+  FProcessFactory := AProcessFactory;
 end;
 
 function TAureliusOctopusEngine.CreateInstance(const ProcessId: string): string;
@@ -50,7 +58,7 @@ end;
 
 function TAureliusOctopusEngine.CreateRepository: IOctopusRepository;
 begin
-  Result := TAureliusRepository.Create(Pool);
+  Result := TAureliusRepository.Create(Pool, FProcessFactory);
 end;
 
 function TAureliusOctopusEngine.CreateRuntime: IOctopusRuntime;

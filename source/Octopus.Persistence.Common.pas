@@ -18,6 +18,12 @@ type
     function GetInstanceProcessId(const InstanceId: string): string;
   end;
 
+  IOctopusProcessFactory = interface
+  ['{A668CF5F-A5FE-499F-A54C-4995E9FCCDC1}']
+    procedure GetProcessDefinition(const ProcessName: string; Version: Integer;
+      var Process: TWorkflowProcess);
+  end;
+
 implementation
 
 end.
