@@ -14,7 +14,8 @@ type
 
   IOctopusRuntime = interface
   ['{B56548F7-8E2B-441E-AE2A-9C04EED98B7D}']
-    function CreateInstance(const ProcessId: string): IProcessInstanceData;
+    function CreateInstance(const ProcessId: string): string;
+    function GetInstanceProcessId(const InstanceId: string): string;
   end;
 
 implementation

@@ -72,7 +72,8 @@ type
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
   public
-    function CreateInstance(const ProcessId: string): IProcessInstanceData;
+    function CreateInstance(const ProcessId: string): string;
+    function GetInstanceProcessId(const InstanceId: string): string;
   end;
 
 implementation
@@ -466,7 +467,7 @@ end;
 { TAureliusRuntime }
 
 function TAureliusRuntime.CreateInstance(
-  const ProcessId: string): IProcessInstanceData;
+  const ProcessId: string): string;
 var
   Manager: TObjectManager;
   Instance: TProcessInstanceEntity;
@@ -474,14 +475,14 @@ var
 begin
   Manager := CreateManager;
   try
-    if ProcessId <> '' then
-    begin
+//    if ProcessId <> '' then
+//    begin
       Definition := Manager.Find<TProcessDefinitionEntity>(ProcessId);
       if Definition = nil then
         raise EOctopusDefinitionNotFound.Create(ProcessId);
-    end
-    else
-      Definition := nil;
+//    end
+//    else
+//      Definition := nil;
 
     Instance := TProcessInstanceEntity.Create;
     Manager.AddToGarbage(Instance);
@@ -489,7 +490,28 @@ begin
     Instance.ProcessDefinition := Definition;
     Manager.Save(Instance);
 
-    Result := TAureliusInstanceData.Create(Pool, Instance.Id);
+    Result := Instance.Id;
+  finally
+    Manager.Free;
+  end;
+end;
+
+function TAureliusRuntime.GetInstanceProcessId(
+  const InstanceId: string): string;
+var
+  Manager: TObjectManager;
+  Instance: TProcessInstanceEntity;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(InstanceId);
+    if Instance = nil then
+      raise EOctopusInstanceNotFound.Create(InstanceId);
+
+    if Instance.ProcessDefinition <> nil then
+      Result := Instance.ProcessDefinition.Id
+    else
+      Result := '';
   finally
     Manager.Free;
   end;
