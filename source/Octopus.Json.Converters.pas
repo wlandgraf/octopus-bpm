@@ -97,7 +97,7 @@ begin
       Reader.ReadNull
     else
       Factory.Converters.Get(variable.DataType.NativeType).ReadJson(Reader, value);
-    variable.DefaultValue := value;
+    variable.Value := value;
     result := true;
   end
   else
@@ -111,10 +111,10 @@ begin
   if PropName = DefaultValueProp then
   begin
     variable := TVariable(AObject);
-    if variable.DefaultValue.IsEmpty then
+    if variable.Value.IsEmpty then
       Writer.WriteNull
     else
-      Factory.Converters.Get(variable.DefaultValue.TypeInfo).WriteJson(Writer, variable.DefaultValue);
+      Factory.Converters.Get(variable.Value.TypeInfo).WriteJson(Writer, variable.Value);
     result := true;
   end
   else

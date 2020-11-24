@@ -3,6 +3,7 @@ unit Octopus.Engine.Aurelius;
 interface
 
 uses
+  Generics.Collections,
   Aurelius.Drivers.Interfaces,
   Octopus.Persistence.Common,
   Octopus.Persistence.Aurelius,
@@ -25,7 +26,8 @@ type
   public
     { IOctopusEngine methods }
     function PublishDefinition(const Name: string; const Process: string = ''): string;
-    function CreateInstance(const ProcessId: string): string;
+    function CreateInstance(const ProcessId: string): string; overload;
+    function CreateInstance(const ProcessId: string; Variables: TEnumerable<TVariable> = nil): string; overload;
     procedure RunInstance(const InstanceId: string); overload;
   end;
 
@@ -47,14 +49,24 @@ begin
 end;
 
 function TAureliusOctopusEngine.CreateInstance(const ProcessId: string): string;
+begin
+  Result := CreateInstance(ProcessId, nil);
+end;
+
+function TAureliusOctopusEngine.CreateInstance(const ProcessId: string;
+  Variables: TEnumerable<TVariable> = nil): string;
 var
   Instance: IProcessInstanceData;
   Process: TWorkflowProcess;
+  Variable: TVariable;
 begin
-  Result := CreateRuntime.CreateInstance(ProcessId);
   Process := CreateRepository.GetDefinition(ProcessId);
+  Result := CreateRuntime.CreateInstance(ProcessId);
   Instance := TAureliusInstanceData.Create(Pool, Result);
   Process.InitInstance(Instance);
+  if Variables <> nil then
+    for Variable in Variables do
+      Instance.SetVariable(Variable.Name, Variable.Value);
 end;
 
 function TAureliusOctopusEngine.CreateRepository: IOctopusRepository;

@@ -119,11 +119,12 @@ type
   private
     FName: string;
     FDataType: TOctopusDataType;
-    FDefaultValue: TValue;
-    procedure SetDefaultValue(const Value: TValue);
+    FValue: TValue;
+    procedure SetValue(const Value: TValue);
     function GetDataTypeName: string;
     procedure SetDataTypeName(const Value: string);
   public
+    constructor Create(const AName: string; const AValue: TValue); overload;
     destructor Destroy; override;
     [Persistent]
     property Name: string read FName write FName;
@@ -131,7 +132,7 @@ type
     [Persistent('Type')]
     property DataTypeName: string read GetDataTypeName write SetDataTypeName;
     [Persistent]
-    property DefaultValue: TValue read FDefaultValue write SetDefaultValue;
+    property Value: TValue read FValue write SetValue;
   end;
 
   TTokenStatus = (Active, Waiting, Finished);
@@ -270,7 +271,7 @@ var
 begin
   // process variables
   for variable in Self.Variables do
-    Instance.SetVariable(variable.Name, variable.DefaultValue);
+    Instance.SetVariable(variable.Name, variable.Value);
 
    // start token
   Instance.AddToken(Self.StartNode);
@@ -478,10 +479,17 @@ end;
 
 { TVariable }
 
+constructor TVariable.Create(const AName: string; const AValue: TValue);
+begin
+  inherited Create;
+  FName := AName;
+  Value := AValue;
+end;
+
 destructor TVariable.Destroy;
 begin
-  if not FDefaultValue.IsEmpty and FDefaultValue.IsObject then
-    FDefaultValue.AsObject.Free;
+  if not FValue.IsEmpty and FValue.IsObject then
+    FValue.AsObject.Free;
   inherited;
 end;
 
@@ -501,10 +509,10 @@ begin
     DataType := nil;
 end;
 
-procedure TVariable.SetDefaultValue(const Value: TValue);
+procedure TVariable.SetValue(const Value: TValue);
 begin
-  FDefaultValue := Value;
-  if (FDataType = nil) and not FDefaultValue.IsEmpty then
+  FValue := Value;
+  if (FDataType = nil) and not FValue.IsEmpty then
     FDataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
 end;
 

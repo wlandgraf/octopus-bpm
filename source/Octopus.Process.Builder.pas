@@ -99,7 +99,7 @@ function TProcessBuilder.AddVariable(const AName: string; ADefaultValue: TValue)
 begin
   result := TVariable.Create;
   result.Name := AName;
-  result.DefaultValue := ADefaultValue;
+  result.Value := ADefaultValue;
   FProcess.Variables.Add(result);
 end;
 
