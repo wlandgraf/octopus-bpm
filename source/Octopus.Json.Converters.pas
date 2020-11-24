@@ -41,7 +41,7 @@ type
   TVariableConverter = class(TOctopusObjectConverter)
   private
     const
-      DefaultValueProp = 'DefaultValue';
+      ValuePropName = 'Value';
   protected
     function ReadProperty(const PropName: string; AObject: TObject; Reader: TJsonReader): boolean; override;
     function WriteProperty(const PropName: string; AObject: TObject; Writer: TJsonWriter): boolean; override;
@@ -89,7 +89,7 @@ var
   variable: TVariable;
   value: TValue;
 begin
-  if PropName = DefaultValueProp then
+  if PropName = ValuePropName then
   begin
     variable := TVariable(AObject);
     value := TValue.Empty;
@@ -108,7 +108,7 @@ function TVariableConverter.WriteProperty(const PropName: string; AObject: TObje
 var
   variable: TVariable;
 begin
-  if PropName = DefaultValueProp then
+  if PropName = ValuePropName then
   begin
     variable := TVariable(AObject);
     if variable.Value.IsEmpty then

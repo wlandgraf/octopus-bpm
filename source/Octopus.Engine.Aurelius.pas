@@ -27,7 +27,7 @@ type
     { IOctopusEngine methods }
     function PublishDefinition(const Name: string; const Process: string = ''): string;
     function CreateInstance(const ProcessId: string): string; overload;
-    function CreateInstance(const ProcessId: string; Variables: TEnumerable<TVariable> = nil): string; overload;
+    function CreateInstance(const ProcessId: string; Variables: TEnumerable<TVariable>): string; overload;
     procedure RunInstance(const InstanceId: string); overload;
   end;
 
@@ -54,7 +54,7 @@ begin
 end;
 
 function TAureliusOctopusEngine.CreateInstance(const ProcessId: string;
-  Variables: TEnumerable<TVariable> = nil): string;
+  Variables: TEnumerable<TVariable>): string;
 var
   Instance: IProcessInstanceData;
   Process: TWorkflowProcess;
