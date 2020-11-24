@@ -36,15 +36,18 @@ requires
 contains
   Octopus.Activities.Task in '..\..\source\Octopus.Activities.Task.pas',
   Octopus.DataTypes in '..\..\source\Octopus.DataTypes.pas',
+  Octopus.Engine.Aurelius in '..\..\source\Octopus.Engine.Aurelius.pas',
   Octopus.Engine in '..\..\source\Octopus.Engine.pas',
   Octopus.Engine.Runner in '..\..\source\Octopus.Engine.Runner.pas',
   Octopus.Entities in '..\..\source\Octopus.Entities.pas',
+  Octopus.Exceptions in '..\..\source\Octopus.Exceptions.pas',
   Octopus.Global in '..\..\source\Octopus.Global.pas',
   Octopus.Json.Converters in '..\..\source\Octopus.Json.Converters.pas',
   Octopus.Json.Deserializer in '..\..\source\Octopus.Json.Deserializer.pas',
   Octopus.Json.ObjectConverter in '..\..\source\Octopus.Json.ObjectConverter.pas',
   Octopus.Json.Serializer in '..\..\source\Octopus.Json.Serializer.pas',
   Octopus.Persistence.Aurelius in '..\..\source\Octopus.Persistence.Aurelius.pas',
+  Octopus.Persistence.Common in '..\..\source\Octopus.Persistence.Common.pas',
   Octopus.Process.Activities in '..\..\source\Octopus.Process.Activities.pas',
   Octopus.Process.Builder in '..\..\source\Octopus.Process.Builder.pas',
   Octopus.Process.Events in '..\..\source\Octopus.Process.Events.pas',
@@ -52,8 +55,6 @@ contains
   Octopus.Process in '..\..\source\Octopus.Process.pas',
   Octopus.Repository in '..\..\source\Octopus.Repository.pas',
   Octopus.Resources in '..\..\source\Octopus.Resources.pas',
-  Octopus.Validator in '..\..\source\Octopus.Validator.pas',
-  Octopus.Persistence.Common in '..\..\source\Octopus.Persistence.Common.pas',
-  Octopus.Exceptions in '..\..\source\Octopus.Exceptions.pas';
+  Octopus.Validator in '..\..\source\Octopus.Validator.pas';
 
 end.

@@ -5,12 +5,25 @@ program OctopusHello;
 {$R *.res}
 
 uses
+  Generics.Collections,
   System.SysUtils,
+  Aurelius.Sql.SQLite,
+  Aurelius.Schema.SQLite,
+  Aurelius.Engine.DatabaseManager,
+  Aurelius.Mapping.Explorer,
+  Aurelius.Drivers.SQLite,
+  Aurelius.Drivers.Interfaces,
+  Aurelius.Drivers.Base,
+  Octopus.Entities,
   Octopus.Process,
   Octopus.Process.Activities,
   Octopus.Process.Builder,
-  Octopus.Persistence.Memory,
-  Octopus.Engine.Runner;
+  Octopus.Persistence.Common,
+  Octopus.Engine,
+  Octopus.Engine.Aurelius;
+
+var
+  Engine: IOctopusEngine;
 
 function CreateHelloProcess: TWorkflowProcess;
 begin
@@ -40,23 +53,22 @@ begin
     .Done;
 end;
 
-procedure LaunchInstance(Process: TWorkflowProcess; Age: Integer);
+procedure LaunchInstance(const ProcessId: string; Age: Integer);
 var
-  Instance: IProcessInstanceData;
-  Runner: TWorkflowRunner;
+  InstanceId: string;
+  Variables: TList<TVariable>;
 begin
-  Instance := TMemoryInstanceData.Create;
-  Process.InitInstance(Instance);
-  Instance.SetVariable('age', Age);
-  Runner := TWorkflowRunner.Create(Process, Instance);
+  Variables := TObjectList<TVariable>.Create;
   try
-    Runner.Execute;
+    Variables.Add(TVariable.Create('age', Age));
+    InstanceId := Engine.CreateInstance(ProcessId, Variables);
   finally
-    Runner.Free;
+    Variables.Free;
   end;
+  Engine.RunInstance(InstanceId);
 end;
 
-procedure AskForAges(Process: TWorkflowProcess);
+procedure AskForAges(const ProcessId: string);
 var
   Age: Integer;
 begin
@@ -65,25 +77,51 @@ begin
     ReadLn(Age);
     if Age <= 0 then Exit;
 
-    LaunchInstance(Process, Age);
+    LaunchInstance(ProcessId, Age);
   until False;
 end;
 
-procedure Run;
-var
-  Process: TWorkflowProcess;
-begin
-  Process := CreateHelloProcess;
-  try
-    AskForAges(Process);
-  finally
-    Process.Free;
+type
+  TProcessFactory = class(TInterfacedObject, IOctopusProcessFactory)
+  strict private
+    FProcess: TWorkflowProcess;
+  public
+    constructor Create(Process: TWorkflowProcess);
+    destructor Destroy; override;
+    procedure GetProcessDefinition(const ProcessId: string; var Process: TWorkflowProcess);
   end;
+
+{ TProcessFactory }
+
+constructor TProcessFactory.Create(Process: TWorkflowProcess);
+begin
+  inherited Create;
+  FProcess := Process;
 end;
+
+destructor TProcessFactory.Destroy;
+begin
+  FProcess.Free;
+  inherited;
+end;
+
+procedure TProcessFactory.GetProcessDefinition(const ProcessId: string;
+  var Process: TWorkflowProcess);
+begin
+  Process := FProcess;
+end;
+
+var
+  Pool: IDBConnectionPool;
+  ProcessId: string;
 
 begin
   try
-    Run;
+    Pool := TSingletonDBConnectionFactory.Create(TSQLiteNativeConnectionAdapter.Create(':memory:'));
+    TDatabaseManager.Update(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
+    Engine := TAureliusOctopusEngine.Create(Pool, TProcessFactory.Create(CreateHelloProcess));
+    ProcessId := Engine.PublishDefinition('HelloProcess');
+    AskForAges(ProcessId);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

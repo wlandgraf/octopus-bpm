@@ -116,15 +116,18 @@
         <DCCReference Include="aurelius.dcp"/>
         <DCCReference Include="..\..\source\Octopus.Activities.Task.pas"/>
         <DCCReference Include="..\..\source\Octopus.DataTypes.pas"/>
+        <DCCReference Include="..\..\source\Octopus.Engine.Aurelius.pas"/>
         <DCCReference Include="..\..\source\Octopus.Engine.pas"/>
         <DCCReference Include="..\..\source\Octopus.Engine.Runner.pas"/>
         <DCCReference Include="..\..\source\Octopus.Entities.pas"/>
+        <DCCReference Include="..\..\source\Octopus.Exceptions.pas"/>
         <DCCReference Include="..\..\source\Octopus.Global.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.Converters.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.Deserializer.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.ObjectConverter.pas"/>
         <DCCReference Include="..\..\source\Octopus.Json.Serializer.pas"/>
         <DCCReference Include="..\..\source\Octopus.Persistence.Aurelius.pas"/>
+        <DCCReference Include="..\..\source\Octopus.Persistence.Common.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Activities.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Builder.pas"/>
         <DCCReference Include="..\..\source\Octopus.Process.Events.pas"/>
@@ -133,8 +136,6 @@
         <DCCReference Include="..\..\source\Octopus.Repository.pas"/>
         <DCCReference Include="..\..\source\Octopus.Resources.pas"/>
         <DCCReference Include="..\..\source\Octopus.Validator.pas"/>
-        <DCCReference Include="..\..\source\Octopus.Persistence.Common.pas"/>
-        <DCCReference Include="..\..\source\Octopus.Exceptions.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
