@@ -61,9 +61,13 @@ var
   Variable: TVariable;
 begin
   Process := CreateRepository.GetDefinition(ProcessId);
-  Result := CreateRuntime.CreateInstance(ProcessId);
-  Instance := TAureliusInstanceData.Create(Pool, Result);
-  Process.InitInstance(Instance);
+  try
+    Result := CreateRuntime.CreateInstance(ProcessId);
+    Instance := TAureliusInstanceData.Create(Pool, Result);
+    Process.InitInstance(Instance);
+  finally
+    Process.Free;
+  end;
   if Variables <> nil then
     for Variable in Variables do
       Instance.SetVariable(Variable.Name, Variable.Value);
@@ -105,8 +109,12 @@ var
 begin
   ProcessId := CreateRuntime.GetInstanceProcessId(InstanceId);
   Process := CreateRepository.GetDefinition(ProcessId);
-  Instance := TAureliusInstanceData.Create(Pool, InstanceId);
-  RunInstance(Process, Instance);
+  try
+    Instance := TAureliusInstanceData.Create(Pool, InstanceId);
+    RunInstance(Process, Instance);
+  finally
+    Process.Free;
+  end;
 end;
 
 end.

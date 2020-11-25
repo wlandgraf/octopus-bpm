@@ -44,7 +44,7 @@ type
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
-    function GetTokens: TArray<TToken>; overload;
+    function GetTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -220,7 +220,7 @@ begin
   end;
 end;
 
-function TAureliusInstanceData.GetTokens: TArray<TToken>;
+function TAureliusInstanceData.GetTokens: TList<TToken>;
 var
   tokenList: TList<TTokenEntity>;
   Manager: TObjectManager;
@@ -234,10 +234,18 @@ begin
       .Where(Linq['i.Id'] = FInstanceId)
       .OrderBy(Linq['CreatedOn'])
       .List;
-
-    SetLength(Result, tokenList.Count);
-    for I := 0 to tokenList.Count - 1 do
-      Result[I] := TokenFromEntity(tokenList[I]);
+    try
+      Result := TObjectList<TToken>.Create;
+      try
+        for I := 0 to tokenList.Count - 1 do
+          Result.Add(TokenFromEntity(tokenList[I]));
+      except
+        Result.Free;
+        raise;
+      end;
+    finally
+      tokenList.Free;
+    end;
   finally
     Manager.Free;
   end;
@@ -282,11 +290,14 @@ begin
       .OrderBy('CreatedOn', false)
       .Take(1)
       .List;
-
-    if tokenList.Count > 0 then
-      result := TokenFromEntity(tokenList[0])
-    else
-      result := nil;
+    try
+      if tokenList.Count > 0 then
+        result := TokenFromEntity(tokenList[0])
+      else
+        result := nil;
+    finally
+      tokenList.Free;
+    end;
   finally
     Manager.Free;
   end;

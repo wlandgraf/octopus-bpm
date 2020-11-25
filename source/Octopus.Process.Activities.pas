@@ -70,9 +70,15 @@ end;
 procedure TActivity.Execute(Context: TExecutionContext);
 var
   token: TToken;
+  tokens: TList<TToken>;
 begin
-  for token in Context.GetTokens(TTokens.Active(Self.Id)) do
-    ExecuteActivityInstance(token, Context);
+  tokens := Context.GetTokens(TTokens.Active(Self.Id));
+  try
+    for token in tokens do
+      ExecuteActivityInstance(token, Context);
+  finally
+    tokens.Free;
+  end;
 end;
 
 procedure TActivity.ExecuteActivityInstance(Token: TToken; Context: TExecutionContext);

@@ -68,7 +68,7 @@ type
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition); overload;
-    function GetTokens: TArray<TToken>; overload;
+    function GetTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -172,7 +172,7 @@ type
     FNode: TFlowNode;
   public
     constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
-    function GetTokens(Predicate: TTokenPredicateFunc): TArray<TToken>;
+    function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
     function LastData(const Variable: string): TValue; overload;
     function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
     function LastData(const NodeId, Variable: string): TValue; overload;
@@ -303,9 +303,15 @@ end;
 procedure TFlowNode.DeactivateTokens(Context: TExecutionContext);
 var
   token: TToken;
+  tokens: TList<TToken>;
 begin
-  for token in Context.GetTokens(TTokens.Active(Self.Id)) do
-    Context.Instance.DeactivateToken(token);
+  tokens := Context.GetTokens(TTokens.Active(Self.Id));
+  try
+    for token in tokens do
+      Context.Instance.DeactivateToken(token);
+  finally
+    tokens.Free;
+  end;
 end;
 
 destructor TFlowNode.Destroy;
@@ -333,16 +339,22 @@ end;
 procedure TFlowNode.FlowTokens(Context: TExecutionContext);
 var
   token: TToken;
+  tokens: TList<TToken>;
 begin
-  for token in Context.GetTokens(TTokens.Pending(Self.Id)) do
-  begin
-    Context.Instance.RemoveToken(token);
-    ScanTransitions(
-      procedure(Transition: TTransition)
-      begin
-        if Transition.Evaluate(Context) then
-          Context.Instance.AddToken(Transition);
-      end);
+  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
+  try
+    for token in tokens do
+    begin
+      Context.Instance.RemoveToken(token);
+      ScanTransitions(
+        procedure(Transition: TTransition)
+        begin
+          if Transition.Evaluate(Context) then
+            Context.Instance.AddToken(Transition);
+        end);
+    end;
+  finally
+    tokens.Free;
   end;
 end;
 
@@ -431,29 +443,35 @@ var
   token: TToken;
 begin
   token := Instance.LastToken(ANode);
-  if token <> nil then
-    result := Instance.GetLocalVariable(Token, Variable)
-  else
-    result := TValue.Empty;
+  try
+    if token <> nil then
+      result := Instance.GetLocalVariable(Token, Variable)
+    else
+      result := TValue.Empty;
+  finally
+    token.Free;
+  end;
 end;
 
 function TExecutionContext.GetTokens(
-  Predicate: TTokenPredicateFunc): TArray<TToken>;
+  Predicate: TTokenPredicateFunc): TList<TToken>;
 var
-  tokens: TArray<TToken>;
-  Total: Integer;
   I: Integer;
 begin
-  tokens := Instance.GetTokens;
-  SetLength(Result, Length(tokens));
-  Total := 0;
-  for I := 0 to Length(tokens) - 1 do
-    if not Assigned(Predicate) or Predicate(tokens[I]) then
+  Result := Instance.GetTokens;
+  try
+    I := 0;
+    while I < Result.Count do
     begin
-      Result[Total] := tokens[I];
-      Inc(Total);
+      if not Assigned(Predicate) or Predicate(Result[I]) then
+        Inc(I)
+      else
+        Result.Delete(I);
     end;
-  SetLength(Result, Total);
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
 function TExecutionContext.LastData(const NodeId, Variable: string): TValue;

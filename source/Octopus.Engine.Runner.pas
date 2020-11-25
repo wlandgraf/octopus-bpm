@@ -56,29 +56,35 @@ end;
 procedure TWorkflowRunner.Execute;
 var
   tempToken, token: TToken;
+  tokens: TList<TToken>;
 begin
   PrepareExecution;
 
   repeat
     // Find next active token to process
     token := nil;
-    for tempToken in FInstance.GetTokens do
-      if tempToken.Status = TTokenStatus.Active then
-      begin
-        token := tempToken;
-        break;
-      end;
+    tokens := FInstance.GetTokens;
+    try
+      for tempToken in tokens do
+        if tempToken.Status = TTokenStatus.Active then
+        begin
+          token := tempToken;
+          break;
+        end;
 
-    // if no active token remaining, we're done
-    if token = nil then Exit;
+      // if no active token remaining, we're done
+      if token = nil then Exit;
 
-    // Avoid infinite loop
-    if FProcessedTokens.Contains(Token.Id) then
-      raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
-    FProcessedTokens.Add(token.Id);
+      // Avoid infinite loop
+      if FProcessedTokens.Contains(Token.Id) then
+        raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
+      FProcessedTokens.Add(token.Id);
 
-    ProcessToken(token);
-    FStatus := TRunnerStatus.Processed;
+      ProcessToken(token);
+      FStatus := TRunnerStatus.Processed;
+    finally
+      tokens.Free;
+    end;
   until False;
 end;
 
@@ -86,10 +92,16 @@ procedure TWorkflowRunner.PrepareExecution;
 var
   node: TFlowNode;
   token: TToken;
+  tokens: TList<TToken>;
 begin
-  for token in FInstance.GetTokens do
-    if token.Status = TTokenStatus.Waiting then
-      FInstance.ActivateToken(token);
+  tokens := FInstance.GetTokens;
+  try
+    for token in tokens do
+      if token.Status = TTokenStatus.Waiting then
+        FInstance.ActivateToken(token);
+  finally
+    tokens.Free;
+  end;
 
   for node in FProcess.Nodes do
     node.EnumTransitions(FProcess);
