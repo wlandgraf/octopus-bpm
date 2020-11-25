@@ -313,6 +313,9 @@ procedure TOctopusObjectConverter.WriteProperties(AObject: TObject; Writer: TJso
 
   procedure WriteMember(AName: string; AType: TRttiType; AValue: TValue);
   begin
+    // do not serialize nil objects
+    if AType.IsInstance and AValue.IsEmpty then Exit;
+
     Writer.WriteName(AName);
     if not WriteProperty(AName, AObject, Writer) then
     begin

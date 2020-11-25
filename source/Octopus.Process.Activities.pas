@@ -61,7 +61,8 @@ end;
 
 procedure TAnonymousActivity.ExecuteInstance(Context: TActivityExecutionContext);
 begin
-  FExecuteProc(Context);
+  if Assigned(FExecuteProc) then
+    FExecuteProc(Context);
 end;
 
 { TActivity }
