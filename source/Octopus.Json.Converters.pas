@@ -33,6 +33,16 @@ type
     constructor Create(AFactory: TOctopusConverterFactory);
   end;
 
+  TConditionConverterFactory = class(TOctopusConverterFactory)
+  public
+    function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; override;
+  end;
+
+  TConditionConverter = class(TOctopusObjectConverter)
+  public
+    constructor Create(AFactory: TOctopusConverterFactory);
+  end;
+
   TVariableConverterFactory = class(TOctopusConverterFactory)
   public
     function CreateConverter(Converters: TJsonConverters; const ATypeToken: TTypeToken): IJsonTypeConverter; override;
@@ -60,6 +70,7 @@ constructor TOctopusJsonConverters.Create;
 begin
   inherited;
   AddFactory(TFlowNodeConverterFactory.Create(Self));
+  AddFactory(TConditionConverterFactory.Create(Self));
   AddFactory(TVariableConverterFactory.Create(Self));
   AddFactory(TOctopusListConverterFactory.Create(Self));
   AddFactory(TOctopusConverterFactory.Create(Self));
@@ -148,6 +159,25 @@ end;
 constructor TFlowNodeConverter.Create(AFactory: TOctopusConverterFactory);
 begin
   inherited Create(TFlowNode, AFactory);
+  WriteClassType := true;
+end;
+
+{ TConditionConverterFactory }
+
+function TConditionConverterFactory.CreateConverter(Converters: TJsonConverters;
+  const ATypeToken: TTypeToken): IJsonTypeConverter;
+begin
+  if ATypeToken.IsClass and ATypeToken.GetClass.InheritsFrom(TCondition) then
+    result := TConditionConverter.Create(Self)
+  else
+    result := nil;
+end;
+
+{ TConditionConverter }
+
+constructor TConditionConverter.Create(AFactory: TOctopusConverterFactory);
+begin
+  inherited Create(TCondition, AFactory);
   WriteClassType := true;
 end;
 

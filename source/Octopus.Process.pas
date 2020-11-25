@@ -20,8 +20,6 @@ type
   TExecutionContext = class;
   TValidationContext = class;
 
-  TEvaluateProc = reference to function(Context: TExecutionContext): boolean;
-
   Persistent = class(TCustomAttribute)
   private
     FPropName: string;
@@ -100,19 +98,27 @@ type
     property OutgoingTransitions: TList<TTransition> read FOutgoingTransitions;
   end;
 
+  TCondition = class
+  public
+    function Evaluate(Context: TExecutionContext): Boolean; virtual; abstract;
+  end;
+
   TTransition = class(TFlowElement)
   private
     [Persistent]
     FSource: TFlowNode;
     [Persistent]
     FTarget: TFlowNode;
-    FEvaluateProc: TEvaluateProc;
+    FCondition: TCondition;
+    procedure SetCondition(const Value: TCondition);
   public
+    destructor Destroy; override;
     procedure Validate(Context: TValidationContext); override;
     function Evaluate(Context: TExecutionContext): boolean; virtual;
-    procedure SetCondition(AProc: TEvaluateProc);
     property Source: TFlowNode read FSource write FSource;
     property Target: TFlowNode read FTarget write FTarget;
+    [Persistent]
+    property Condition: TCondition read FCondition write SetCondition;
   end;
 
   TVariable = class
@@ -379,17 +385,27 @@ end;
 
 { TTransition }
 
-function TTransition.Evaluate(Context: TExecutionContext): boolean;
+destructor TTransition.Destroy;
 begin
-  if Assigned(FEvaluateProc) then
-    result := FEvaluateProc(Context)
-  else // TODO: condition expression?
-    result := true;
+  FreeAndNil(FCondition);
+  inherited;
 end;
 
-procedure TTransition.SetCondition(AProc: TEvaluateProc);
+function TTransition.Evaluate(Context: TExecutionContext): boolean;
 begin
-  FEvaluateProc := AProc;
+  if Assigned(FCondition) then
+    Result := FCondition.Evaluate(Context)
+  else // TODO: condition expression?
+    Result := true;
+end;
+
+procedure TTransition.SetCondition(const Value: TCondition);
+begin
+  if FCondition <> Value then
+  begin
+    FreeAndNil(FCondition);
+    FCondition := Value;
+  end;
 end;
 
 procedure TTransition.Validate(Context: TValidationContext);

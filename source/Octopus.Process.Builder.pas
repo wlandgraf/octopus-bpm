@@ -40,7 +40,7 @@ type
     // fluent interface methods
     function Activity(AClass: TActivityClass): TProcessBuilder; overload;
     function Activity(AActivity: TActivity): TProcessBuilder; overload;
-    function Condition(AProc: TEvaluateProc): TProcessBuilder;
+    function Condition(ACondition: TCondition): TProcessBuilder;
     function EndEvent: TProcessBuilder;
     function ExclusiveGateway: TProcessBuilder;
     function Get(out ANode: TFlowNode): TProcessBuilder;
@@ -120,12 +120,12 @@ begin
   FItems.Add(result);
 end;
 
-function TProcessBuilder.Condition(AProc: TEvaluateProc): TProcessBuilder;
+function TProcessBuilder.Condition(ACondition: TCondition): TProcessBuilder;
 var
   transition: TTransition;
 begin
   transition := AddTransition(CurrentNode, nil);
-  transition.SetCondition(AProc);
+  transition.Condition := ACondition;
   result := BuildItem(transition, false);
 end;
 

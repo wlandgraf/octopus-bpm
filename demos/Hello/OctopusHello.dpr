@@ -19,8 +19,10 @@ uses
   Octopus.Process.Activities,
   Octopus.Process.Builder,
   Octopus.Persistence.Common,
+  Octopus.Json.Serializer,
   Octopus.Engine,
-  Octopus.Engine.Aurelius;
+  Octopus.Engine.Aurelius,
+  BusinessObjects in 'BusinessObjects.pas';
 
 var
   Engine: IOctopusEngine;
@@ -31,24 +33,11 @@ begin
     .Variable('age')
     .StartEvent
     .ExclusiveGateway
-      .Condition(
-        function(Context: TExecutionContext): boolean
-        begin
-          result := Context.Instance.GetVariable('age').AsInteger <= 70;
-        end
-      )
-      .Activity(TAnonymousActivity.Create(
-        procedure(Context: TActivityExecutionContext)
-        begin
-          WriteLn('Hello, world.');
-        end))
+      .Condition(TYoungPersonCondition.Create)
+      .Activity(TWriteLnActivity.Create('Hello, world.'))
       .EndEvent
     .GotoLastGateway
-      .Activity(TAnonymousActivity.Create(
-        procedure(Context: TActivityExecutionContext)
-        begin
-          WriteLn('Goodbye, world.');
-        end))
+      .Activity(TWriteLnActivity.Create('Goodbye, world.'))
       .EndEvent
     .Done;
 end;
@@ -81,46 +70,22 @@ begin
   until False;
 end;
 
-type
-  TProcessFactory = class(TInterfacedObject, IOctopusProcessFactory)
-  strict private
-    FProcess: TWorkflowProcess;
-  public
-    constructor Create(Process: TWorkflowProcess);
-    destructor Destroy; override;
-    procedure GetProcessDefinition(const ProcessId: string; var Process: TWorkflowProcess);
-  end;
-
-{ TProcessFactory }
-
-constructor TProcessFactory.Create(Process: TWorkflowProcess);
-begin
-  inherited Create;
-  FProcess := Process;
-end;
-
-destructor TProcessFactory.Destroy;
-begin
-  FProcess.Free;
-  inherited;
-end;
-
-procedure TProcessFactory.GetProcessDefinition(const ProcessId: string;
-  var Process: TWorkflowProcess);
-begin
-  Process := FProcess;
-end;
-
 var
   Pool: IDBConnectionPool;
   ProcessId: string;
-
+  HelloProcess: TWorkflowProcess;
 begin
   try
     Pool := TSingletonDBConnectionFactory.Create(TSQLiteNativeConnectionAdapter.Create(':memory:'));
     TDatabaseManager.Update(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
-    Engine := TAureliusOctopusEngine.Create(Pool, TProcessFactory.Create(CreateHelloProcess));
-    ProcessId := Engine.PublishDefinition('HelloProcess');
+    Engine := TAureliusOctopusEngine.Create(Pool);
+    HelloProcess := CreateHelloProcess;
+    try
+      ProcessId := Engine.PublishDefinition('HelloProcess',
+        TWorkflowSerializer.ProcessToJson(HelloProcess));
+    finally
+      HelloProcess.Free;
+    end;
     AskForAges(ProcessId);
   except
     on E: Exception do
