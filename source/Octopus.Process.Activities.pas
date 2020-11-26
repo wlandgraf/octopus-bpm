@@ -24,6 +24,8 @@ type
     FToken: TToken;
     FDone: boolean;
     FInstance: IProcessInstanceData;
+    FContext: TExecutionContext;
+    function GetNode: TFlowNode;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
     function GetVariable(const Name: string): TValue;
@@ -32,6 +34,7 @@ type
     procedure SetLocalVariable(const Name: string; Value: TValue);
     property Token: TToken read FToken;
     property Done: boolean read FDone write FDone;
+    property Node: TFlowNode read GetNode;
   end;
 
   TActivityClass = class of TActivity;
@@ -46,9 +49,19 @@ type
     procedure ExecuteInstance(Context: TActivityExecutionContext); override;
   end;
 
+  TActivityExecutor = class
+  strict private
+    FContext: TActivityExecutionContext;
+  public
+    constructor Create(Context: TActivityExecutionContext); virtual;
+    procedure Execute; virtual; abstract;
+    property Context: TActivityExecutionContext read FContext;
+  end;
+
 implementation
 
 uses
+  Octopus.Exceptions,
   Octopus.Resources;
 
 { TAnonymousActivity }
@@ -111,6 +124,7 @@ end;
 
 constructor TActivityExecutionContext.Create(AContext: TExecutionContext; AToken: TToken);
 begin
+  FContext := AContext;
   FInstance := AContext.Instance;
   FToken := AToken;
   FDone := true;
@@ -119,6 +133,11 @@ end;
 function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
 begin
   result := FInstance.GetLocalVariable(Token, Name);
+end;
+
+function TActivityExecutionContext.GetNode: TFlowNode;
+begin
+  Result := FContext.Node;
 end;
 
 function TActivityExecutionContext.GetVariable(const Name: string): TValue;
@@ -134,6 +153,14 @@ end;
 procedure TActivityExecutionContext.SetVariable(const Name: string; Value: TValue);
 begin
   FInstance.SetVariable(Name, Value);
+end;
+
+{ TActivityExecutor }
+
+constructor TActivityExecutor.Create(Context: TActivityExecutionContext);
+begin
+  inherited Create;
+  FContext := Context;
 end;
 
 end.
