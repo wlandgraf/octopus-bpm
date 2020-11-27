@@ -120,8 +120,10 @@ begin
   RegisterType('System.Double', TypeInfo(Double));
   RegisterType('System.Extended', TypeInfo(Extended));
   RegisterType('System.Int64', TypeInfo(Int64));
-  RegisterType('System.Byte', TypeInfo(Boolean));
+  RegisterType('System.Byte', TypeInfo(Byte));
   RegisterType('System.TDateTime', TypeInfo(TDateTime));
+  RegisterType('System.TDate', TypeInfo(TDate));
+  RegisterType('System.TTime', TypeInfo(TTime));
   RegisterType('System.TArray<System.string>', TypeInfo(TArray<string>));
   RegisterType('System.TArray<System.Integer>', TypeInfo(TArray<Integer>));
   RegisterType('System.TArray<System.Boolean>', TypeInfo(TArray<Boolean>));
