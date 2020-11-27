@@ -128,7 +128,6 @@ begin
   RegisterType('System.TArray<System.Integer>', TypeInfo(TArray<Integer>));
   RegisterType('System.TArray<System.Boolean>', TypeInfo(TArray<Boolean>));
   RegisterType('System.TArray<System.Double>', TypeInfo(TArray<Double>));
-//  RegisterType('System.TArray<System.Extended>', TypeInfo(TArray<Extended>));
   RegisterType('System.TArray<System.Byte>', TypeInfo(TArray<Byte>));
 end;
 
