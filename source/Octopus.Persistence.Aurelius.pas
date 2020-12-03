@@ -60,14 +60,39 @@ type
     FProcessFactory: IOctopusProcessFactory;
   public
     constructor Create(Pool: IDBConnectionPool; ProcessFactory: IOctopusProcessFactory); overload;
-    function PublishDefinition(const Name: string; const Process: string): string;
+    function PublishDefinition(const Key, Process: string; const Name: string = ''): string;
     function GetDefinition(const ProcessId: string): TWorkflowProcess;
+    function FindDefinitionByKey(const Key: string): IProcessDefinition;
   end;
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
   public
     function CreateInstance(const ProcessId: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
+  end;
+
+  TAureliusProcessDefinition = class(TInterfacedObject, IProcessDefinition)
+  strict private
+    FId: string;
+    FKey: string;
+    FName: string;
+    FProcess: string;
+    FVersion: Integer;
+    FCreatedOn: TDateTime;
+    function GetId: string;
+    function GetKey: string;
+    function GetName: string;
+    function GetProcess: string;
+    function GetVersion: Integer;
+    function GetCreatedOn: TDateTime;
+  public
+    constructor Create(Entity: TProcessDefinitionEntity);
+    property Id: string read GetId;
+    property Key: string read GetKey;
+    property Name: string read GetName;
+    property Process: string read GetProcess;
+    property Version: Integer read GetVersion;
+    property CreatedOn: TDateTime read GetCreatedOn;
   end;
 
 implementation
@@ -540,6 +565,7 @@ function TAureliusRepository.GetDefinition(const ProcessId: string): TWorkflowPr
 var
   Manager: TObjectManager;
   Definition: TProcessDefinitionEntity;
+  ProcessJson: string;
 begin
   Result := nil;
   Manager := CreateManager;
@@ -548,8 +574,9 @@ begin
     if Definition = nil then
       raise EOctopusDefinitionNotFound.Create(ProcessId);
 
-    if Definition.Process.AsUnicodeString <> '' then
-      Result := TWorkflowDeserializer.ProcessFromJson(Definition.Process.AsUnicodeString)
+    ProcessJson := TEncoding.UTF8.GetString(Definition.Process.AsBytes);
+    if ProcessJson <> '' then
+      Result := TWorkflowDeserializer.ProcessFromJson(ProcessJson)
     else
     if FProcessFactory <> nil then
       FProcessFactory.GetProcessDefinition(Definition.Id, Result);
@@ -561,8 +588,30 @@ begin
   end;
 end;
 
-function TAureliusRepository.PublishDefinition(const Name: string;
-  const Process: string): string;
+function TAureliusRepository.FindDefinitionByKey(
+  const Key: string): IProcessDefinition;
+var
+  Manager: TObjectManager;
+  Definition: TProcessDefinitionEntity;
+begin
+  Result := nil;
+  Manager := CreateManager;
+  try
+    Definition := Manager.Find<TProcessDefinitionEntity>
+      .Where(Linq['Key'].ILike(Key))
+      .OrderBy('Version', False)
+      .Take(1)
+      .UniqueResult;
+
+    if Definition <> nil then
+      Result := TAureliusProcessDefinition.Create(Definition)
+  finally
+    Manager.Free;
+  end;
+end;
+
+function TAureliusRepository.PublishDefinition(const Key, Process: string;
+  const Name: string = ''): string;
 var
   Manager: TObjectManager;
   VersionResult: TCriteriaResult;
@@ -573,7 +622,7 @@ begin
   try
     VersionResult := Manager.Find<TProcessDefinitionEntity>
       .Select(Linq['Version'].Max)
-      .Where(Linq['Name'].ILike(Name))
+      .Where(Linq['Key'].ILike(Key))
       .UniqueValue;
     try
       if VarIsNull(VersionResult.Values[0]) then
@@ -586,17 +635,61 @@ begin
 
     Definition := TProcessDefinitionEntity.Create;
     Manager.AddToGarbage(Definition);
+    Definition.Key := Key;
     Definition.Name := Name;
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
     Definition.CreatedOn := Now;
     if Process <> '' then
-      Definition.Process.AsUnicodeString :=  Process;
+      Definition.Process.AsBytes := TEncoding.UTF8.GetBytes(Process);
     Manager.Save(Definition);
     Result := Definition.Id;
   finally
     Manager.Free;
   end;
+end;
+
+{ TAureliusProcessDefinition }
+
+constructor TAureliusProcessDefinition.Create(Entity: TProcessDefinitionEntity);
+begin
+  inherited Create;
+  FId := Entity.Id;
+  FKey := Entity.Key;
+  FName := Entity.Name;
+  FProcess := TEncoding.UTF8.GetString(Entity.Process.AsBytes);
+  FVersion := Entity.Version;
+  FCreatedOn := Entity.CreatedOn;
+end;
+
+function TAureliusProcessDefinition.GetCreatedOn: TDateTime;
+begin
+  Result := FCreatedOn;
+end;
+
+function TAureliusProcessDefinition.GetId: string;
+begin
+  Result := FId;
+end;
+
+function TAureliusProcessDefinition.GetKey: string;
+begin
+  Result := FKey;
+end;
+
+function TAureliusProcessDefinition.GetName: string;
+begin
+  Result := FName;
+end;
+
+function TAureliusProcessDefinition.GetProcess: string;
+begin
+  Result := FProcess;
+end;
+
+function TAureliusProcessDefinition.GetVersion: Integer;
+begin
+  Result := FVersion;
 end;
 
 end.
