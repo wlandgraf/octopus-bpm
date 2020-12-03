@@ -43,7 +43,7 @@ type
     { IProcessInstanceData methods }
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition); overload;
+    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
     function GetTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -114,7 +114,7 @@ begin
   end;
 end;
 
-procedure TAureliusInstanceData.AddToken(Transition: TTransition);
+procedure TAureliusInstanceData.AddToken(Transition: TTransition; const ParentId: string);
 var
   token: TToken;
 begin
@@ -123,7 +123,7 @@ begin
     token.TransitionId := Transition.Id;
     Assert(Transition.Target <> nil);
     token.NodeId := Transition.Target.Id;
-  //  token.ProducerId := ProducerId;
+    token.ParentId := ParentId;
     SaveToken(token);
   finally
     token.Free;

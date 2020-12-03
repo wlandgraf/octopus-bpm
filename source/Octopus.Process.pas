@@ -67,7 +67,7 @@ type
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition); overload;
+    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
     function GetTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -151,6 +151,7 @@ type
     FProducerId: string;
     FConsumerId: string;
     FStatus: TTokenStatus;
+    FParentId: string;
     function GetNodeId: string;
     procedure SetNodeId(const Value: string);
     procedure SetTransitionId(const Value: string);
@@ -161,6 +162,7 @@ type
     property ConsumerId: string read FConsumerId write FConsumerId;
     property ProducerId: string read FProducerId write FProducerId;
     property Status: TTokenStatus read FStatus write FStatus;
+    property ParentId: string read FParentId write FParentId;
   end;
 
   TTokenPredicateFunc = reference to function(Token: TToken): Boolean;
@@ -350,7 +352,7 @@ begin
         procedure(Transition: TTransition)
         begin
           if Transition.Evaluate(Context) then
-            Context.Instance.AddToken(Transition);
+            Context.Instance.AddToken(Transition, token.Id);
         end);
     end;
   finally

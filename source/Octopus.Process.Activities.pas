@@ -110,7 +110,7 @@ begin
         procedure(Transition: TTransition)
         begin
           if Transition.Evaluate(Context) then
-            Context.Instance.AddToken(Transition);
+            Context.Instance.AddToken(Transition, Token.Id);
         end);
     end
     else

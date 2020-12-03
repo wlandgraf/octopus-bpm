@@ -167,7 +167,7 @@ begin
           begin
             if Transition.Evaluate(Context) then
             begin
-              Context.Instance.AddToken(Transition);
+              Context.Instance.AddToken(Transition, token.Id);
               done := true;
             end;
           end;
@@ -245,7 +245,7 @@ begin
     procedure(Transition: TTransition)
     begin
       if Transition.Evaluate(Context) then
-        Context.Instance.AddToken(Transition);
+        Context.Instance.AddToken(Transition, '');
     end);
 end;
 
@@ -297,7 +297,7 @@ begin
   ScanTransitions(
     procedure(Transition: TTransition)
     begin
-      Context.Instance.AddToken(Transition);
+      Context.Instance.AddToken(Transition, '');
     end);
 end;
 

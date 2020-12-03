@@ -1,6 +1,7 @@
 unit Octopus.Entities;
 
 {$I Octopus.inc}
+{$RTTI EXPLICIT METHODS([vcPrivate..vcPublished])}
 
 interface
 
@@ -10,7 +11,8 @@ uses
   Aurelius.Mapping.Attributes,
   Aurelius.Types.Blob,
   Aurelius.Types.Nullable,
-  Aurelius.Types.Proxy;
+  Aurelius.Types.Proxy,
+  Aurelius.Validation;
 
 const
   OctopusModel = 'Octopus';
@@ -104,6 +106,9 @@ type
     [Association([TAssociationProp.Required, TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_INSTANCE_ID', [TColumnProp.Required])]
     FInstance: Proxy<TProcessInstanceEntity>;
+    [Association([TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
+    [JoinColumn('PARENT_ID', [])]
+    FParent: Proxy<TTokenEntity>;
     FCreatedOn: TDateTime;
     FFinishedOn: Nullable<TDateTime>;
     FStatus: TTokenEntityStatus;
@@ -113,6 +118,11 @@ type
     FConsumerId: Nullable<string>;
     function GetInstance: TProcessInstanceEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
+    function GetParent: TTokenEntity;
+    procedure SetParent(const Value: TTokenEntity);
+  strict protected
+    [OnValidate]
+    function OnValidateParent(Context: IValidationContext): IValidationResult;
   strict protected
     property RowVersion: Integer read FRowVersion;
   public
@@ -120,6 +130,7 @@ type
     property CreatedOn: TDateTime read FCreatedOn write FCreatedOn;
     property FinishedOn: Nullable<TDateTime> read FFinishedOn write FFinishedOn;
     property TransitionId: Nullable<string> read FTransitionId write FTransitionId;
+    property Parent: TTokenEntity read GetParent write SetParent;
     property NodeId: Nullable<string> read FNodeId write FNodeId;
     property ConsumerId: Nullable<string> read FConsumerId write FConsumerId;
     property ProducerId: Nullable<string> read FProducerId write FProducerId;
@@ -172,6 +183,9 @@ type
 
 implementation
 
+uses
+  Octopus.Resources;
+
 { TProcessInstanceEntity }
 
 function TProcessInstanceEntity.GetProcessDefinition: TProcessDefinitionEntity;
@@ -192,9 +206,28 @@ begin
   Result := FInstance.Value;
 end;
 
+function TTokenEntity.GetParent: TTokenEntity;
+begin
+  Result := FParent.Value;
+end;
+
+function TTokenEntity.OnValidateParent(
+  Context: IValidationContext): IValidationResult;
+begin
+  if (TransitionId.ValueOrDefault <> '') and FParent.Available and not Assigned(FParent.Value) then
+    Result := TValidationResult.Failed(STokenValidationParentRequired)
+  else
+    Result := TValidationResult.Success;
+end;
+
 procedure TTokenEntity.SetInstance(const Value: TProcessInstanceEntity);
 begin
   FInstance.Value := Value;
+end;
+
+procedure TTokenEntity.SetParent(const Value: TTokenEntity);
+begin
+  FParent.Value := Value;
 end;
 
 { TVariableEntity }

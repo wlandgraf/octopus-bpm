@@ -32,6 +32,8 @@ resourcestring
   SErrorDeactivateTokenWrongStatus  = 'Cannot deactivate token "%s" with status %d';
   SErrorTokenReprocessed            = 'Internal error: token "%s" reprocessed';
 
+  STokenValidationParentRequired    = 'Parent is required if token belongs to a transition';
+
 implementation
 
 end.
