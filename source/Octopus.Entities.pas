@@ -30,26 +30,28 @@ type
   [Model(OctopusModel)]
   [Table('OCT_PROC_DEFINITION')]
   [Sequence('SEQ_PROC_DEFINITION')]
-  [UniqueKey('NAME,VERSION')]
+  [UniqueKey('KEY,VERSION')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TProcessDefinitionEntity = class
   strict private
-    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 32)]
+    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 40)]
     FId: string;
     [Version]
     FRowVersion: Integer;
-    [Column('NAME', [TColumnProp.Required, TColumnProp.NoUpdate], 255)]
+    [Column('KEY', [TColumnProp.Required, TColumnProp.NoUpdate], 255)]
+    FKey: string;
+    [Column('NAME', [], 255)]
     FName: string;
     FVersion: Integer;
     FStatus: TProcessDefinitionStatus;
     FCreatedOn: TDateTime;
-    [DBTypeWideMemo]
     [Column('PROCESS', [TColumnProp.Lazy])]
     FProcess: TBlob;
   strict protected
     property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
+    property Key: string read FKey write FKey;
     property Name: string read FName write FName;
     property Process: TBlob read FProcess write FProcess;
     property Version: integer read FVersion write FVersion;
@@ -67,7 +69,7 @@ type
   [Id('FId', TSmartGuid32LowerGenerator)]
   TProcessInstanceEntity = class
   private
-    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 32)]
+    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 40)]
     FId: string;
     [Version]
     FRowVersion: Integer;
@@ -99,7 +101,7 @@ type
   [Id('FId', TSmartGuid32LowerGenerator)]
   TTokenEntity = class
   private
-    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 32)]
+    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 40)]
     FId: string;
     [Version]
     FRowVersion: Integer;
@@ -146,7 +148,7 @@ type
   [Id('FId', TSmartGuid32LowerGenerator)]
   TVariableEntity = class
   private
-    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 32)]
+    [Column('ID', [TColumnProp.Required, TColumnProp.NoUpdate], 40)]
     FId: string;
     [Version]
     FRowVersion: Integer;
