@@ -5,7 +5,9 @@ unit Octopus.Process.Gateways;
 interface
 
 uses
+  Windows, SysUtils,
   Generics.Collections,
+  Octopus.CommonAncestor,
   Octopus.Process;
 
 type
@@ -220,24 +222,37 @@ end;
 procedure TInclusiveGateway.Trigger(Context: TExecutionContext);
 var
   transition: TTransition;
-  tokens: TList<TToken>;
+  allTokens: TList<TToken>;
+  tokensToConsume: TList<Integer>;
   I: Integer;
+  CommonParentId: string;
 begin
-  // get all pending tokens for the node
-  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
+  // get all tokens of the instance
+  allTokens := Context.GetTokens(nil);
+  tokensToConsume := TList<Integer>.Create;
   try
-    // consume one token from each incoming transition that has a token
+    // consume one active token per transition
     for transition in IncomingTransitions do
-    begin
-      for I := 0 to tokens.Count - 1 do
-        if tokens[I].TransitionId = transition.Id then
+      for I := 0 to allTokens.Count - 1 do
+        // if the token is in the incoming transition and is not finished, consume it,
+        // and only it
+        if (allTokens[I].TransitionId = transition.Id) and (allTokens[I].Status <> TTokenStatus.Finished) then
         begin
-          Context.Instance.RemoveToken(tokens[I]);
+          tokensToConsume.Add(I);
           break;
         end;
-    end;
+
+    Assert(tokensToConsume.Count > 0);
+
+    // Find the common ancestor for all input tokens (tokens that will be consumed)
+    CommonParentId := TCommonAncestorFinder.GetCommonAncestorId(allTokens, tokensToConsume);
+
+    // Consume tokens
+    for I := 0 to tokensToConsume.Count - 1 do
+      Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
   finally
-    tokens.Free;
+    tokensToConsume.Free;
+    allTokens.Free;
   end;
 
   // generate a new token for each outgoing transition evaluated as true
@@ -245,7 +260,7 @@ begin
     procedure(Transition: TTransition)
     begin
       if Transition.Evaluate(Context) then
-        Context.Instance.AddToken(Transition, '');
+        Context.Instance.AddToken(Transition, commonParentId);
     end);
 end;
 
@@ -271,33 +286,47 @@ end;
 procedure TParallelGateway.Trigger(Context: TExecutionContext);
 var
   transition: TTransition;
-  tokens: TList<TToken>;
+  allTokens: TList<TToken>;
+  tokensToConsume: TList<Integer>;
   I: Integer;
+  CommonParentId: string;
 begin
-  // get all pending tokens for the node
-  tokens := Context.GetTokens(TTokens.Pending(Self.Id));
-
+  // get all tokens of the instance
+  allTokens := Context.GetTokens(nil);
+  tokensToConsume := TList<Integer>.Create;
   try
-    // consume one token from each incoming transition that has a token
+    // consume one active token per transition
     for transition in IncomingTransitions do
-    begin
-      // iterate from oldest to newest, to get the first token arriving to the node
-      for I := 0 to tokens.Count - 1 do
-        if tokens[I].TransitionId = transition.Id then
+      for I := 0 to allTokens.Count - 1 do
+        // if the token is in the incoming transition and is not finished, consume it,
+        // and only it
+        if (allTokens[I].TransitionId = transition.Id) and (allTokens[I].Status <> TTokenStatus.Finished) then
         begin
-          Context.Instance.RemoveToken(tokens[I]);
+          tokensToConsume.Add(I);
           break;
         end;
-    end;
+
+    for I := 0 to allTokens.Count - 1 do
+      OutputdebugString(PChar(Format('%d - %s, %s',
+        [I, allTokens[I].Id, allTokens[I].ParentId])));
+
+
+    // Find the common ancestor for all input tokens (tokens that will be consumed)
+    CommonParentId := TCommonAncestorFinder.GetCommonAncestorId(allTokens, tokensToConsume);
+
+    // Consume tokens
+    for I := 0 to tokensToConsume.Count - 1 do
+      Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
   finally
-    tokens.Free;
+    tokensToConsume.Free;
+    allTokens.Free;
   end;
 
   // generate a new token for each outgoing transition (no evaluation)
   ScanTransitions(
     procedure(Transition: TTransition)
     begin
-      Context.Instance.AddToken(Transition, '');
+      Context.Instance.AddToken(Transition, CommonParentId);
     end);
 end;
 

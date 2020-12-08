@@ -1,12 +1,14 @@
 unit Octopus.Entities;
 
 {$I Octopus.inc}
+
+// Allow method-based validations
 {$RTTI EXPLICIT METHODS([vcPrivate..vcPublished])}
 
 interface
 
 uses
-  Generics.Collections,
+  Generics.Collections, Variants,
   Aurelius.Id.Guid,
   Aurelius.Mapping.Attributes,
   Aurelius.Types.Blob,
@@ -122,6 +124,7 @@ type
     procedure SetInstance(const Value: TProcessInstanceEntity);
     function GetParent: TTokenEntity;
     procedure SetParent(const Value: TTokenEntity);
+    function GetParentId: string;
   strict protected
     [OnValidate]
     function OnValidateParent(Context: IValidationContext): IValidationResult;
@@ -133,6 +136,7 @@ type
     property FinishedOn: Nullable<TDateTime> read FFinishedOn write FFinishedOn;
     property TransitionId: Nullable<string> read FTransitionId write FTransitionId;
     property Parent: TTokenEntity read GetParent write SetParent;
+    property ParentId: string read GetParentId;
     property NodeId: Nullable<string> read FNodeId write FNodeId;
     property ConsumerId: Nullable<string> read FConsumerId write FConsumerId;
     property ProducerId: Nullable<string> read FProducerId write FProducerId;
@@ -211,6 +215,19 @@ end;
 function TTokenEntity.GetParent: TTokenEntity;
 begin
   Result := FParent.Value;
+end;
+
+function TTokenEntity.GetParentId: string;
+begin
+  if FParent.Available then
+  begin
+    if Assigned(FParent.Value) then
+      Result := FParent.Value.Id
+    else
+      Result := '';
+  end
+  else
+    Result := VarToStr(FParent.Key);
 end;
 
 function TTokenEntity.OnValidateParent(

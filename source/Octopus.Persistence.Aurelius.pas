@@ -364,6 +364,7 @@ begin
     tokenEnt.TransitionId := Token.TransitionId;
     tokenEnt.NodeId := Token.NodeId;
     tokenEnt.Instance := GetInstanceEntity(Manager);
+    tokenEnt.Parent := Manager.Find<TTokenEntity>(Token.ParentId);
     Manager.Save(tokenEnt);
   finally
     Manager.Free;
@@ -471,6 +472,7 @@ begin
   Result.NodeId := InstanceToken.NodeId.ValueOrDefault;
   Result.ConsumerId := InstanceToken.ConsumerId.ValueOrDefault;
   Result.ProducerId := InstanceToken.ProducerId.ValueOrDefault;
+  Result.ParentId := InstanceToken.ParentId;
   Result.Status := TokenStatusMap[InstanceToken.Status];
 end;
 
