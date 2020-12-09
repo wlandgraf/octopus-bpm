@@ -62,6 +62,14 @@ type
     property Id: string read FId write FId;
   end;
 
+  IVariable = interface
+  ['{F73A4AB4-A35B-4076-ADCF-C3295B3369D6}']
+    function GetName: string;
+    function GetValue: TValue;
+    property Name: string read GetName;
+    property Value: TValue read GetValue;
+  end;
+
   IProcessInstanceData = interface
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     function GetInstanceId: string;
@@ -72,9 +80,9 @@ type
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
-    function GetVariable(const Name: string): TValue;
+    function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
-    function GetTokenVariable(Token: TToken; const Name: string): TValue;
+    function GetTokenVariable(Token: TToken; const Name: string): IVariable;
     procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
@@ -438,7 +446,7 @@ begin
   token := Instance.LastToken(ANode);
   try
     if token <> nil then
-      result := Instance.GetTokenVariable(Token, Variable)
+      result := Instance.GetTokenVariable(Token, Variable).Value
     else
       result := TValue.Empty;
   finally

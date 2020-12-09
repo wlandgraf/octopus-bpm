@@ -34,7 +34,6 @@ type
     procedure SaveToken(Token: TToken);
     procedure FillVariable(InstanceVar: TVariableEntity; Value: TValue);
     function TokenFromEntity(InstanceToken: TTokenEntity): TToken;
-    function VariableValue(InstanceVar: TVariableEntity): TValue;
     function GetInstanceEntity(Manager: TObjectManager): TProcessInstanceEntity;
   public
     constructor Create(Pool: IDBConnectionPool; const InstanceId: string);
@@ -49,9 +48,9 @@ type
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
     function LastToken(Node: TFlowNode): TToken;
-    function GetVariable(const Name: string): TValue;
+    function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
-    function GetTokenVariable(Token: TToken; const Name: string): TValue;
+    function GetTokenVariable(Token: TToken; const Name: string): IVariable;
     procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
@@ -93,6 +92,20 @@ type
     property Process: string read GetProcess;
     property Version: Integer read GetVersion;
     property CreatedOn: TDateTime read GetCreatedOn;
+  end;
+
+  TAureliusVariable = class(TInterfacedObject, IVariable)
+  strict private
+    FName: string;
+    FValue: TValue;
+    function GetName: string;
+    function GetValue: TValue;
+    function ToValue(Variable: TVariableEntity): TValue;
+  public
+    constructor Create(const Name: string); reintroduce; overload;
+    constructor Create(Variable: TVariableEntity); reintroduce; overload;
+    property Name: string read GetName;
+    property Value: TValue read GetValue;
   end;
 
 implementation
@@ -221,7 +234,7 @@ begin
   Result := FInstanceId;
 end;
 
-function TAureliusInstanceData.GetTokenVariable(Token: TToken; const Name: string): TValue;
+function TAureliusInstanceData.GetTokenVariable(Token: TToken; const Name: string): IVariable;
 var
   varEnt: TVariableEntity;
   Manager: TObjectManager;
@@ -237,9 +250,9 @@ begin
       .UniqueResult;
 
     if varEnt <> nil then
-      Result := VariableValue(varEnt)
+      Result := TAureliusVariable.Create(varEnt)
     else
-      Result := TValue.Empty;
+      Result := TAureliusVariable.Create(Name)
   finally
     Manager.Free;
   end;
@@ -276,7 +289,7 @@ begin
   end;
 end;
 
-function TAureliusInstanceData.GetVariable(const Name: string): TValue;
+function TAureliusInstanceData.GetVariable(const Name: string): IVariable;
 var
   varEnt: TVariableEntity;
 begin
@@ -291,9 +304,9 @@ begin
       .UniqueResult;
 
     if varEnt <> nil then
-      Result := VariableValue(varEnt)
+      Result := TAureliusVariable.Create(varEnt)
     else
-      Result := TValue.Empty;
+      Result := TAureliusVariable.Create(Name)
   finally
     Manager.Free;
   end;
@@ -474,18 +487,6 @@ begin
   Result.ProducerId := InstanceToken.ProducerId.ValueOrDefault;
   Result.ParentId := InstanceToken.ParentId;
   Result.Status := TokenStatusMap[InstanceToken.Status];
-end;
-
-function TAureliusInstanceData.VariableValue(InstanceVar: TVariableEntity): TValue;
-begin
-  if Trim(InstanceVar.ValueType) = '' then
-    Exit(TValue.Empty);
-
-  if Trim(InstanceVar.Value) <> '' then
-    result := TWorkflowDeserializer.ValueFromJson(InstanceVar.Value,
-      TOctopusDataTypes.Default.Get(InstanceVar.ValueType).NativeType)
-  else
-    result := TValue.Empty;
 end;
 
 { TAureliusPersistence }
@@ -693,6 +694,43 @@ end;
 function TAureliusProcessDefinition.GetVersion: Integer;
 begin
   Result := FVersion;
+end;
+
+{ TAureliusVariable }
+
+constructor TAureliusVariable.Create(Variable: TVariableEntity);
+begin
+  inherited Create;
+  FName := Variable.Name;
+  FValue := ToValue(Variable);
+end;
+
+constructor TAureliusVariable.Create(const Name: string);
+begin
+  inherited Create;
+  FName := Name;
+end;
+
+function TAureliusVariable.GetName: string;
+begin
+  Result := FName;
+end;
+
+function TAureliusVariable.GetValue: TValue;
+begin
+  Result := FValue;
+end;
+
+function TAureliusVariable.ToValue(Variable: TVariableEntity): TValue;
+begin
+  if Trim(Variable.ValueType) = '' then
+    Exit(TValue.Empty);
+
+  if Trim(Variable.Value) <> '' then
+    result := TWorkflowDeserializer.ValueFromJson(Variable.Value,
+      TOctopusDataTypes.Default.Get(Variable.ValueType).NativeType)
+  else
+    result := TValue.Empty;
 end;
 
 end.

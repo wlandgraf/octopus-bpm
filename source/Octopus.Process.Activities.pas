@@ -132,7 +132,7 @@ end;
 
 function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
 begin
-  result := FInstance.GetTokenVariable(Token, Name);
+  result := FInstance.GetTokenVariable(Token, Name).Value;
 end;
 
 function TActivityExecutionContext.GetNode: TFlowNode;
@@ -143,7 +143,7 @@ end;
 function TActivityExecutionContext.GetVariable(const Name: string): TValue;
 begin
   {$Message WARN 'Resolve this'}
-  result := FInstance.GetVariable(Name)
+  result := FInstance.GetVariable(Name).Value
 end;
 
 procedure TActivityExecutionContext.SetLocalVariable(const Name: string; Value: TValue);
