@@ -25,7 +25,9 @@ type
     FDone: boolean;
     FInstance: IProcessInstanceData;
     FContext: TExecutionContext;
+    function FindToken(const Id: string): TToken;
     function GetNode: TFlowNode;
+    function FindVariable(const Name: string): IVariable;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
     function GetVariable(const Name: string): TValue;
@@ -130,9 +132,39 @@ begin
   FDone := true;
 end;
 
-function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
+function TActivityExecutionContext.FindToken(const Id: string): TToken;
 begin
-  result := FInstance.GetTokenVariable(Token, Name).Value;
+  Result := nil;
+end;
+
+function TActivityExecutionContext.FindVariable(const Name: string): IVariable;
+var
+  TargetToken: TToken;
+begin
+  Result := FInstance.GetVariable(Name);
+  Exit;
+
+
+  // Optimize this later!
+  TargetToken := Self.Token;
+  repeat
+    Result := FInstance.GetTokenVariable(TargetToken, Name);
+    if Result <> nil then
+      Exit;
+    TargetToken := FindToken(TargetToken.ParentId);
+  until TargetToken = nil;
+  Result := nil;
+end;
+
+function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
+var
+  Variable: IVariable;
+begin
+  Variable := FInstance.GetTokenVariable(Token, Name);
+  if Variable <> nil then
+    Result := Variable.Value
+  else
+    Result := TValue.Empty;
 end;
 
 function TActivityExecutionContext.GetNode: TFlowNode;
@@ -141,9 +173,14 @@ begin
 end;
 
 function TActivityExecutionContext.GetVariable(const Name: string): TValue;
+var
+  Variable: IVariable;
 begin
-  {$Message WARN 'Resolve this'}
-  result := FInstance.GetVariable(Name).Value
+  Variable := FindVariable(Name);
+  if Variable <> nil then
+    Result := Variable.Value
+  else
+    Result := TValue.Empty;
 end;
 
 procedure TActivityExecutionContext.SetLocalVariable(const Name: string; Value: TValue);

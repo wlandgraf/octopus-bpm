@@ -102,8 +102,7 @@ type
     function GetValue: TValue;
     function ToValue(Variable: TVariableEntity): TValue;
   public
-    constructor Create(const Name: string); reintroduce; overload;
-    constructor Create(Variable: TVariableEntity); reintroduce; overload;
+    constructor Create(Variable: TVariableEntity); reintroduce;
     property Name: string read GetName;
     property Value: TValue read GetValue;
   end;
@@ -252,7 +251,7 @@ begin
     if varEnt <> nil then
       Result := TAureliusVariable.Create(varEnt)
     else
-      Result := TAureliusVariable.Create(Name)
+      Result := nil
   finally
     Manager.Free;
   end;
@@ -306,7 +305,7 @@ begin
     if varEnt <> nil then
       Result := TAureliusVariable.Create(varEnt)
     else
-      Result := TAureliusVariable.Create(Name)
+      Result := nil
   finally
     Manager.Free;
   end;
@@ -703,12 +702,6 @@ begin
   inherited Create;
   FName := Variable.Name;
   FValue := ToValue(Variable);
-end;
-
-constructor TAureliusVariable.Create(const Name: string);
-begin
-  inherited Create;
-  FName := Name;
 end;
 
 function TAureliusVariable.GetName: string;
