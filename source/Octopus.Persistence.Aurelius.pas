@@ -51,8 +51,8 @@ type
     function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): TValue;
     procedure SetVariable(const Name: string; const Value: TValue);
-    function GetLocalVariable(Token: TToken; const Name: string): TValue;
-    procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+    function GetTokenVariable(Token: TToken; const Name: string): TValue;
+    procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
   TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
@@ -221,7 +221,7 @@ begin
   Result := FInstanceId;
 end;
 
-function TAureliusInstanceData.GetLocalVariable(Token: TToken; const Name: string): TValue;
+function TAureliusInstanceData.GetTokenVariable(Token: TToken; const Name: string): TValue;
 var
   varEnt: TVariableEntity;
   Manager: TObjectManager;
@@ -388,7 +388,7 @@ begin
   end;
 end;
 
-procedure TAureliusInstanceData.SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+procedure TAureliusInstanceData.SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
 var
   tokenEnt: TTokenEntity;
   varEnt: TVariableEntity;
@@ -642,6 +642,7 @@ begin
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
     Definition.CreatedOn := Now;
+
     if Process <> '' then
       Definition.Process.AsBytes := TEncoding.UTF8.GetBytes(Process);
     Manager.Save(Definition);

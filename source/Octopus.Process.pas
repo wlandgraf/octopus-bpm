@@ -47,7 +47,6 @@ type
     function FindTransition(const AId: string): TTransition;
     function GetNode(const AId: string): TFlowNode;
     function GetTransition(const AId: string): TTransition;
-    function GetVariable(const AName: string): TVariable;
     property Nodes: TObjectList<TFlowNode> read FNodes;
     property Transitions: TObjectList<TTransition> read FTransitions;
     property Variables: TObjectList<TVariable> read FVariables;
@@ -75,8 +74,8 @@ type
     function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): TValue;
     procedure SetVariable(const Name: string; const Value: TValue);
-    function GetLocalVariable(Token: TToken; const Name: string): TValue;
-    procedure SetLocalVariable(Token: TToken; const Name: string; const Value: TValue);
+    function GetTokenVariable(Token: TToken; const Name: string): TValue;
+    procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
   end;
 
   TFlowNode = class abstract(TFlowElement)
@@ -265,14 +264,6 @@ begin
     raise EOctopusTransitionNotFound.Create(AId);
 end;
 
-function TWorkflowProcess.GetVariable(const AName: string): TVariable;
-begin
-  for result in Variables do
-    if SameText(AName, result.Name) then
-      exit;
-  result := nil;
-end;
-
 procedure TWorkflowProcess.InitInstance(Instance: IProcessInstanceData);
 var
   variable: TVariable;
@@ -447,7 +438,7 @@ begin
   token := Instance.LastToken(ANode);
   try
     if token <> nil then
-      result := Instance.GetLocalVariable(Token, Variable)
+      result := Instance.GetTokenVariable(Token, Variable)
     else
       result := TValue.Empty;
   finally
