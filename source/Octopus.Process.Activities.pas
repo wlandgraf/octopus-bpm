@@ -25,9 +25,7 @@ type
     FDone: boolean;
     FInstance: IProcessInstanceData;
     FContext: TExecutionContext;
-    function FindToken(const Id: string): TToken;
     function GetNode: TFlowNode;
-    function FindVariable(const Name: string): IVariable;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
     function GetVariable(const Name: string): TValue;
@@ -132,39 +130,9 @@ begin
   FDone := true;
 end;
 
-function TActivityExecutionContext.FindToken(const Id: string): TToken;
-begin
-  Result := nil;
-end;
-
-function TActivityExecutionContext.FindVariable(const Name: string): IVariable;
-var
-  TargetToken: TToken;
-begin
-  Result := FInstance.GetVariable(Name);
-  Exit;
-
-
-  // Optimize this later!
-  TargetToken := Self.Token;
-  repeat
-    Result := FInstance.GetTokenVariable(TargetToken, Name);
-    if Result <> nil then
-      Exit;
-    TargetToken := FindToken(TargetToken.ParentId);
-  until TargetToken = nil;
-  Result := nil;
-end;
-
 function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
-var
-  Variable: IVariable;
 begin
-  Variable := FInstance.GetTokenVariable(Token, Name);
-  if Variable <> nil then
-    Result := Variable.Value
-  else
-    Result := TValue.Empty;
+  Result := FContext.GetLocalVariable(Token, Name);
 end;
 
 function TActivityExecutionContext.GetNode: TFlowNode;
@@ -173,25 +141,18 @@ begin
 end;
 
 function TActivityExecutionContext.GetVariable(const Name: string): TValue;
-var
-  Variable: IVariable;
 begin
-  Variable := FindVariable(Name);
-  if Variable <> nil then
-    Result := Variable.Value
-  else
-    Result := TValue.Empty;
+  Result := FContext.GetVariable(Token, Name);
 end;
 
 procedure TActivityExecutionContext.SetLocalVariable(const Name: string; Value: TValue);
 begin
-  FInstance.SetTokenVariable(Token, Name, Value);
+  FContext.SetLocalVariable(Token, Name, Value);
 end;
 
 procedure TActivityExecutionContext.SetVariable(const Name: string; Value: TValue);
 begin
-  {$Message WARN 'Resolve this'}
-  FInstance.SetVariable(Name, Value);
+  FContext.SetVariable(Token, Name, Value);
 end;
 
 { TActivityExecutor }

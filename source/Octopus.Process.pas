@@ -175,13 +175,21 @@ type
   TTokenPredicateFunc = reference to function(Token: TToken): Boolean;
 
   TExecutionContext = class
-  private
+  strict private
     FInstance: IProcessInstanceData;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
+    function FindToken(const Id: string): TToken;
+    function FindVariable(Token: TToken; const Name: string): IVariable;
   public
     constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
+
+    function GetVariable(Token: TToken; const Name: string): TValue;
+    procedure SetVariable(Token: TToken; const Name: string; Value: TValue);
+    function GetLocalVariable(Token: TToken; const Name: string): TValue;
+    procedure SetLocalVariable(Token: TToken; const Name: string; Value: TValue);
+
     function LastData(const Variable: string): TValue; overload;
     function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
     function LastData(const NodeId, Variable: string): TValue; overload;
@@ -454,6 +462,40 @@ begin
   end;
 end;
 
+function TExecutionContext.FindToken(const Id: string): TToken;
+begin
+  Result := nil;
+end;
+
+function TExecutionContext.FindVariable(Token: TToken; const Name: string): IVariable;
+begin
+  Result := FInstance.GetVariable(Name);
+  Exit;
+
+
+  // Optimize this later!
+  while Token <> nil do
+  begin
+    Result := FInstance.GetTokenVariable(Token, Name);
+    if Result <> nil then
+      Exit;
+    Token := FindToken(Token.ParentId);
+  end;
+  Result := nil;
+end;
+
+function TExecutionContext.GetLocalVariable(Token: TToken;
+  const Name: string): TValue;
+var
+  Variable: IVariable;
+begin
+  Variable := FInstance.GetTokenVariable(Token, Name);
+  if Variable <> nil then
+    Result := Variable.Value
+  else
+    Result := TValue.Empty;
+end;
+
 function TExecutionContext.GetTokens(
   Predicate: TTokenPredicateFunc): TList<TToken>;
 var
@@ -475,9 +517,34 @@ begin
   end;
 end;
 
+function TExecutionContext.GetVariable(Token: TToken;
+  const Name: string): TValue;
+var
+  Variable: IVariable;
+begin
+  Variable := FindVariable(Token, Name);
+  if Variable <> nil then
+    Result := Variable.Value
+  else
+    Result := TValue.Empty;
+end;
+
 function TExecutionContext.LastData(const NodeId, Variable: string): TValue;
 begin
   result := LastData(Process.GetNode(NodeId), Variable);
+end;
+
+procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
+  Value: TValue);
+begin
+  FInstance.SetTokenVariable(Token, Name, Value);
+end;
+
+procedure TExecutionContext.SetVariable(Token: TToken; const Name: string;
+  Value: TValue);
+begin
+  {$Message WARN 'Resolve this'}
+  FInstance.SetVariable(Name, Value);
 end;
 
 function TExecutionContext.LastData(const Variable: string): TValue;
