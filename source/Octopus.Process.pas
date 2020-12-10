@@ -67,8 +67,10 @@ type
   ['{F73A4AB4-A35B-4076-ADCF-C3295B3369D6}']
     function GetName: string;
     function GetValue: TValue;
+    function GetTokenId: string;
     property Name: string read GetName;
     property Value: TValue read GetValue;
+    property TokenId: string read GetTokenId;
   end;
 
   IProcessInstanceData = interface
@@ -84,7 +86,7 @@ type
     function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetTokenVariable(Token: TToken; const Name: string): IVariable;
-    procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
+    procedure SetTokenVariable(const TokenId: string; const Name: string; const Value: TValue);
   end;
 
   TFlowNode = class abstract(TFlowElement)
@@ -590,16 +592,24 @@ procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
   Value: TValue);
 begin
   if Token <> nil then
-    FInstance.SetTokenVariable(Token, Name, Value)
+    FInstance.SetTokenVariable(Token.Id, Name, Value)
   else
     FInstance.SetVariable(Name, Value);
 end;
 
 procedure TExecutionContext.SetVariable(Token: TToken; const Name: string;
   Value: TValue);
+var
+  Variable: IVariable;
 begin
-  {$Message WARN 'Resolve this'}
-  FInstance.SetVariable(Name, Value);
+  // check if we already have a variable in scope. If we do, update it, otherwise
+  // create a new one
+  Variable := FindVariable(Token, Name);
+  if (Variable <> nil) and (Variable.TokenId <> '') then
+    FInstance.SetTokenVariable(Variable.TokenId, Name, Value)
+  else
+    // set global variable
+    FInstance.SetVariable(Name, Value);
 end;
 
 function TExecutionContext.LastData(const Variable: string): TValue;

@@ -176,6 +176,7 @@ type
     function GetToken: TTokenEntity;
     procedure SetInstance(const Value: TProcessInstanceEntity);
     procedure SetToken(const Value: TTokenEntity);
+    function GetTokenId: string;
   strict protected
     property RowVersion: Integer read FRowVersion;
   public
@@ -185,6 +186,7 @@ type
     property ValueType: string read FValueType write FValueType;
     property Instance: TProcessInstanceEntity read GetInstance write SetInstance;
     property Token: TTokenEntity read GetToken write SetToken;
+    property TokenId: string read GetTokenId;
   end;
 
 implementation
@@ -259,6 +261,19 @@ end;
 function TVariableEntity.GetToken: TTokenEntity;
 begin
   Result := FToken.Value;
+end;
+
+function TVariableEntity.GetTokenId: string;
+begin
+  if FToken.Available then
+  begin
+    if Assigned(FToken.Value) then
+      Result := FToken.Value.Id
+    else
+      Result := '';
+  end
+  else
+    Result := VarToStr(FToken.Key);
 end;
 
 procedure TVariableEntity.SetInstance(const Value: TProcessInstanceEntity);

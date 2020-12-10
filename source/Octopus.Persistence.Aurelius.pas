@@ -51,7 +51,7 @@ type
     function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetTokenVariable(Token: TToken; const Name: string): IVariable;
-    procedure SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
+    procedure SetTokenVariable(const TokenId: string; const Name: string; const Value: TValue);
   end;
 
   TAureliusRepository = class(TAureliusPersistence, IOctopusRepository)
@@ -98,13 +98,16 @@ type
   strict private
     FName: string;
     FValue: TValue;
+    FTokenId: string;
     function GetName: string;
     function GetValue: TValue;
+    function GetTokenId: string;
     function ToValue(Variable: TVariableEntity): TValue;
   public
     constructor Create(Variable: TVariableEntity); reintroduce;
     property Name: string read GetName;
     property Value: TValue read GetValue;
+    property TokenId: string read GetTokenId;
   end;
 
 implementation
@@ -400,7 +403,8 @@ begin
   end;
 end;
 
-procedure TAureliusInstanceData.SetTokenVariable(Token: TToken; const Name: string; const Value: TValue);
+procedure TAureliusInstanceData.SetTokenVariable(const TokenId: string;
+  const Name: string; const Value: TValue);
 var
   tokenEnt: TTokenEntity;
   varEnt: TVariableEntity;
@@ -411,15 +415,15 @@ begin
       .CreateAlias('Instance', 'i')
       .CreateAlias('Token', 't')
       .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['t.Id'] = token.Id)
+         and (Linq['t.Id'] = TokenId)
          and (Linq['Name'].ILike(Name)))
       .UniqueResult;
 
     if varEnt = nil then
     begin
-      tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
+      tokenEnt := Manager.Find<TTokenEntity>(TokenId);
       if tokenEnt = nil then
-        raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, Token.Id]);
+        raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, TokenId]);
 
       varEnt := TVariableEntity.Create;
       Manager.AddToGarbage(varEnt);
@@ -702,11 +706,17 @@ begin
   inherited Create;
   FName := Variable.Name;
   FValue := ToValue(Variable);
+  FTokenId := Variable.TokenId;
 end;
 
 function TAureliusVariable.GetName: string;
 begin
   Result := FName;
+end;
+
+function TAureliusVariable.GetTokenId: string;
+begin
+  Result := FTokenId;
 end;
 
 function TAureliusVariable.GetValue: TValue;
