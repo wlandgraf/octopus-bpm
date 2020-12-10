@@ -19,6 +19,7 @@ type
   TToken = class;
   TExecutionContext = class;
   TValidationContext = class;
+  TTransitionExecutionContext = class;
 
   Persistent = class(TCustomAttribute)
   private
@@ -91,7 +92,8 @@ type
     FIncomingTransitions: TList<TTransition>;
     FOutgoingTransitions: TList<TTransition>;
   protected
-    procedure ScanTransitions(Proc: TProc<TTransition>);
+    procedure ScanTransitions(Context: TExecutionContext; Token: TToken;
+      Proc: TProc<TTransitionExecutionContext>);
     procedure FlowTokens(Context: TExecutionContext);
     procedure DeactivateTokens(Context: TExecutionContext);
   public
@@ -120,9 +122,18 @@ type
     property Token: TToken read FToken;
   end;
 
+  TTransitionExecutionContext = class(TTokenExecutionContext)
+  strict private
+    FTransition: TTransition;
+  public
+    constructor Create(AContext: TExecutionContext; AToken: TToken;
+      ATransition: TTransition); reintroduce;
+    property Transition: TTransition read FTransition;
+  end;
+
   TCondition = class
   public
-    function Evaluate(Context: TExecutionContext): Boolean; virtual; abstract;
+    function Evaluate(Context: TTransitionExecutionContext): Boolean; virtual; abstract;
   end;
 
   TTransition = class(TFlowElement)
@@ -136,7 +147,7 @@ type
   public
     destructor Destroy; override;
     procedure Validate(Context: TValidationContext); override;
-    function Evaluate(Context: TExecutionContext): boolean; virtual;
+    function Evaluate(Context: TTransitionExecutionContext): Boolean; virtual;
     property Source: TFlowNode read FSource write FSource;
     property Target: TFlowNode read FTarget write FTarget;
     [Persistent]
@@ -204,6 +215,8 @@ type
     procedure SetVariable(Token: TToken; const Name: string; Value: TValue);
     function GetLocalVariable(Token: TToken; const Name: string): TValue;
     procedure SetLocalVariable(Token: TToken; const Name: string; Value: TValue);
+
+    procedure AddToken(Transition: TTransition; Token: TToken);
 
     function LastData(const Variable: string): TValue; overload;
     function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
@@ -370,11 +383,11 @@ begin
     for token in tokens do
     begin
       Context.Instance.RemoveToken(token);
-      ScanTransitions(
-        procedure(Transition: TTransition)
+      ScanTransitions(Context, token,
+        procedure(Ctxt: TTransitionExecutionContext)
         begin
-          if Transition.Evaluate(Context) then
-            Context.Instance.AddToken(Transition, token.Id);
+          if Ctxt.Transition.Evaluate(Ctxt) then
+            Context.AddToken(Ctxt.Transition, token);
         end);
     end;
   finally
@@ -387,13 +400,22 @@ begin
   result := false;
 end;
 
-procedure TFlowNode.ScanTransitions(Proc: TProc<TTransition>);
+procedure TFlowNode.ScanTransitions(Context: TExecutionContext; Token: TToken;
+  Proc: TProc<TTransitionExecutionContext>);
 var
   Transition: TTransition;
+  TransitionContext: TTransitionExecutionContext;
 begin
   // scan the outgoing Transitions from a node and execute the callback procedure for each one
   for Transition in OutgoingTransitions do
-    Proc(Transition);
+  begin
+    TransitionContext := TTransitionExecutionContext.Create(Context, Token, Transition);
+    try
+      Proc(TransitionContext);
+    finally
+      TransitionContext.Free;
+    end;
+  end;
 end;
 
 procedure TFlowNode.Validate(Context: TValidationContext);
@@ -427,7 +449,7 @@ begin
   inherited;
 end;
 
-function TTransition.Evaluate(Context: TExecutionContext): boolean;
+function TTransition.Evaluate(Context: TTransitionExecutionContext): boolean;
 begin
   if Assigned(FCondition) then
     Result := FCondition.Evaluate(Context)
@@ -454,6 +476,14 @@ end;
 
 { TExecutionContext }
 
+procedure TExecutionContext.AddToken(Transition: TTransition; Token: TToken);
+begin
+  if Token <> nil then
+    FInstance.AddToken(Transition, Token.Id)
+  else
+    FInstance.AddToken(Transition, '');
+end;
+
 constructor TExecutionContext.Create(AInstance: IProcessInstanceData;
   AProcess: TWorkflowProcess; ANode: TFlowNode);
 begin
@@ -478,16 +508,25 @@ begin
 end;
 
 function TExecutionContext.FindToken(const Id: string): TToken;
+var
+  Tokens: TList<TToken>;
+  I: Integer;
 begin
+  // search from newest to oldest because we are likely to search active token
+  // than historical ones
+  Tokens := GetTokens(nil);
+  try
+    for I := Tokens.Count -1 downto 0 do
+      if Tokens[I].Id = Id then
+        Exit(Tokens[I]);
+  finally
+//    Tokens.Free;
+  end;
   Result := nil;
 end;
 
 function TExecutionContext.FindVariable(Token: TToken; const Name: string): IVariable;
 begin
-  Result := FInstance.GetVariable(Name);
-  Exit;
-
-
   // Optimize this later!
   while Token <> nil do
   begin
@@ -496,7 +535,7 @@ begin
       Exit;
     Token := FindToken(Token.ParentId);
   end;
-  Result := nil;
+  Result := FInstance.GetVariable(Name);
 end;
 
 function TExecutionContext.GetLocalVariable(Token: TToken;
@@ -504,7 +543,10 @@ function TExecutionContext.GetLocalVariable(Token: TToken;
 var
   Variable: IVariable;
 begin
-  Variable := FInstance.GetTokenVariable(Token, Name);
+  if Token <> nil then
+    Variable := FInstance.GetTokenVariable(Token, Name)
+  else
+    Variable := FInstance.GetVariable(Name);
   if Variable <> nil then
     Result := Variable.Value
   else
@@ -552,7 +594,10 @@ end;
 procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
   Value: TValue);
 begin
-  FInstance.SetTokenVariable(Token, Name, Value);
+  if Token <> nil then
+    FInstance.SetTokenVariable(Token, Name, Value)
+  else
+    FInstance.SetVariable(Name, Value);
 end;
 
 procedure TExecutionContext.SetVariable(Token: TToken; const Name: string;
@@ -698,6 +743,15 @@ end;
 procedure TTokenExecutionContext.SetVariable(const Name: string; Value: TValue);
 begin
   FContext.SetVariable(Token, Name, Value);
+end;
+
+{ TTransitionExecutionContext }
+
+constructor TTransitionExecutionContext.Create(AContext: TExecutionContext;
+  AToken: TToken; ATransition: TTransition);
+begin
+  inherited Create(AContext, AToken);
+  FTransition := ATransition;
 end;
 
 end.

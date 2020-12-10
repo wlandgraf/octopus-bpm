@@ -98,11 +98,11 @@ begin
     begin
       Context.Instance.RemoveToken(Token);
 
-      ScanTransitions(
-        procedure(Transition: TTransition)
+      ScanTransitions(Context, Token,
+        procedure(Ctxt: TTransitionExecutionContext)
         begin
-          if Transition.Evaluate(Context) then
-            Context.Instance.AddToken(Transition, Token.Id);
+          if Ctxt.Transition.Evaluate(Ctxt) then
+            Context.AddToken(Ctxt.Transition, Token);
         end);
     end
     else

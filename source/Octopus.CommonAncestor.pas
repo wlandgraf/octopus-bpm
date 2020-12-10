@@ -16,8 +16,8 @@ type
   public
     constructor Create(ATokens: TList<TToken>);
     destructor Destroy; override;
-    function GetCommonAncestorId(Indexes: TList<Integer>): string; overload;
-    class function GetCommonAncestorId(Tokens: TList<TToken>; Indexes: TList<Integer>): string; overload;
+    function GetCommonAncestorToken(Indexes: TList<Integer>): TToken; overload;
+    class function GetCommonAncestorToken(Tokens: TList<TToken>; Indexes: TList<Integer>): TToken; overload;
   end;
 
 implementation
@@ -70,30 +70,30 @@ begin
   Result := -1;
 end;
 
-function TCommonAncestorFinder.GetCommonAncestorId(Indexes: TList<Integer>): string;
+function TCommonAncestorFinder.GetCommonAncestorToken(Indexes: TList<Integer>): TToken;
 var
   ParentIndex: Integer;
   I: Integer;
 begin
-  if (FTokens.Count = 0) or (Indexes.Count = 0) then Exit('');
+  if (FTokens.Count = 0) or (Indexes.Count = 0) then Exit(nil);
 
   ParentIndex := Indexes[0];
   for I := 1 to Indexes.Count - 1 do
     ParentIndex := CommonAncestor(ParentIndex, Indexes[I]);
   if ParentIndex >= 0 then
-    Result := FTokens[ParentIndex].Id
+    Result := FTokens[ParentIndex]
   else
-    Result := '';
+    Result := nil;
 end;
 
-class function TCommonAncestorFinder.GetCommonAncestorId(Tokens: TList<TToken>;
-  Indexes: TList<Integer>): string;
+class function TCommonAncestorFinder.GetCommonAncestorToken(Tokens: TList<TToken>;
+  Indexes: TList<Integer>): TToken;
 var
   Finder: TCommonAncestorFinder;
 begin
   Finder := TCommonAncestorFinder.Create(Tokens);
   try
-    Result := Finder.GetCommonAncestorId(Indexes);
+    Result := Finder.GetCommonAncestorToken(Indexes);
   finally
     Finder.Free;
   end;

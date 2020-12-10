@@ -126,7 +126,7 @@ type
     procedure SetParent(const Value: TTokenEntity);
     function GetParentId: string;
   strict protected
-    [OnValidate]
+    [OnValidate2]
     function OnValidateParent(Context: IValidationContext): IValidationResult;
   strict protected
     property RowVersion: Integer read FRowVersion;

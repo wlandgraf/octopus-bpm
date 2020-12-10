@@ -162,14 +162,14 @@ begin
     begin
       // generate a new token for the first outgoing transition evaluated as true
       done := false;
-      ScanTransitions(
-        procedure(Transition: TTransition)
+      ScanTransitions(Context, token,
+        procedure(Ctxt: TTransitionExecutionContext)
         begin
           if not done then
           begin
-            if Transition.Evaluate(Context) then
+            if Ctxt.Transition.Evaluate(Ctxt) then
             begin
-              Context.Instance.AddToken(Transition, token.Id);
+              Context.AddToken(Ctxt.Transition, token);
               done := true;
             end;
           end;
@@ -225,7 +225,7 @@ var
   allTokens: TList<TToken>;
   tokensToConsume: TList<Integer>;
   I: Integer;
-  CommonParentId: string;
+  ParentToken: TToken;
 begin
   // get all tokens of the instance
   allTokens := Context.GetTokens(nil);
@@ -245,23 +245,23 @@ begin
     Assert(tokensToConsume.Count > 0);
 
     // Find the common ancestor for all input tokens (tokens that will be consumed)
-    CommonParentId := TCommonAncestorFinder.GetCommonAncestorId(allTokens, tokensToConsume);
+    ParentToken := TCommonAncestorFinder.GetCommonAncestorToken(allTokens, tokensToConsume);
 
     // Consume tokens
     for I := 0 to tokensToConsume.Count - 1 do
       Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
+
+    // generate a new token for each outgoing transition evaluated as true
+    ScanTransitions(Context, ParentToken,
+      procedure(Ctxt: TTransitionExecutionContext)
+      begin
+        if Ctxt.Transition.Evaluate(Ctxt) then
+          Context.AddToken(Ctxt.Transition, ParentToken);
+      end);
   finally
     tokensToConsume.Free;
     allTokens.Free;
   end;
-
-  // generate a new token for each outgoing transition evaluated as true
-  ScanTransitions(
-    procedure(Transition: TTransition)
-    begin
-      if Transition.Evaluate(Context) then
-        Context.Instance.AddToken(Transition, commonParentId);
-    end);
 end;
 
 { TParallelGateway }
@@ -289,7 +289,7 @@ var
   allTokens: TList<TToken>;
   tokensToConsume: TList<Integer>;
   I: Integer;
-  CommonParentId: string;
+  ParentToken: TToken;
 begin
   // get all tokens of the instance
   allTokens := Context.GetTokens(nil);
@@ -312,22 +312,22 @@ begin
 
 
     // Find the common ancestor for all input tokens (tokens that will be consumed)
-    CommonParentId := TCommonAncestorFinder.GetCommonAncestorId(allTokens, tokensToConsume);
+    ParentToken := TCommonAncestorFinder.GetCommonAncestorToken(allTokens, tokensToConsume);
 
     // Consume tokens
     for I := 0 to tokensToConsume.Count - 1 do
       Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
+
+    // generate a new token for each outgoing transition (no evaluation)
+    ScanTransitions(Context, ParentToken,
+      procedure(Ctxt: TTransitionExecutionContext)
+      begin
+        Context.AddToken(Ctxt.Transition, ParentToken);
+      end);
   finally
     tokensToConsume.Free;
     allTokens.Free;
   end;
-
-  // generate a new token for each outgoing transition (no evaluation)
-  ScanTransitions(
-    procedure(Transition: TTransition)
-    begin
-      Context.Instance.AddToken(Transition, CommonParentId);
-    end);
 end;
 
 end.
