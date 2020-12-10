@@ -47,7 +47,6 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetTokenVariable(Token: TToken; const Name: string): IVariable;
@@ -309,35 +308,6 @@ begin
       Result := TAureliusVariable.Create(varEnt)
     else
       Result := nil
-  finally
-    Manager.Free;
-  end;
-end;
-
-function TAureliusInstanceData.LastToken(Node: TFlowNode): TToken;
-var
-  tokenList: TList<TTokenEntity>;
-  Manager: TObjectManager;
-begin
-  Manager := CreateManager;
-  try
-    tokenList := Manager.Find<TTokenEntity>
-      .CreateAlias('Instance', 'i')
-      .Where(
-        (Linq['i.Id'] = FInstanceId) and
-        (Linq['NodeId'] = Node.Id)
-      )
-      .OrderBy('CreatedOn', false)
-      .Take(1)
-      .List;
-    try
-      if tokenList.Count > 0 then
-        result := TokenFromEntity(tokenList[0])
-      else
-        result := nil;
-    finally
-      tokenList.Free;
-    end;
   finally
     Manager.Free;
   end;

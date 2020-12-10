@@ -82,7 +82,6 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function LastToken(Node: TFlowNode): TToken;
     function GetVariable(const Name: string): IVariable;
     procedure SetVariable(const Name: string; const Value: TValue);
     function GetTokenVariable(Token: TToken; const Name: string): IVariable;
@@ -224,9 +223,6 @@ type
 
     procedure AddToken(Transition: TTransition; Token: TToken);
 
-    function LastData(const Variable: string): TValue; overload;
-    function LastData(ANode: TFlowNode; const Variable: string): TValue; overload;
-    function LastData(const NodeId, Variable: string): TValue; overload;
     property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
     property Node: TFlowNode read FNode;
@@ -500,21 +496,6 @@ begin
   FNode := ANode;
 end;
 
-function TExecutionContext.LastData(ANode: TFlowNode; const Variable: string): TValue;
-var
-  token: TToken;
-begin
-  token := Instance.LastToken(ANode);
-  try
-    if token <> nil then
-      result := Instance.GetTokenVariable(Token, Variable).Value
-    else
-      result := TValue.Empty;
-  finally
-    token.Free;
-  end;
-end;
-
 function TExecutionContext.FindToken(const Id: string): TToken;
 var
   I: Integer;
@@ -583,11 +564,6 @@ begin
     Result := TValue.Empty;
 end;
 
-function TExecutionContext.LastData(const NodeId, Variable: string): TValue;
-begin
-  result := LastData(Process.GetNode(NodeId), Variable);
-end;
-
 procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
   Value: TValue);
 begin
@@ -610,11 +586,6 @@ begin
   else
     // set global variable
     FInstance.SetVariable(Name, Value);
-end;
-
-function TExecutionContext.LastData(const Variable: string): TValue;
-begin
-  Result := LastData(Node, Variable);
 end;
 
 { TValidationResult }
