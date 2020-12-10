@@ -82,10 +82,8 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function GetVariable(const Name: string): IVariable;
-    procedure SetVariable(const Name: string; const Value: TValue);
-    function GetTokenVariable(Token: TToken; const Name: string): IVariable;
-    procedure SetTokenVariable(const TokenId: string; const Name: string; const Value: TValue);
+    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
+    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
 
   TFlowNode = class abstract(TFlowElement)
@@ -316,7 +314,7 @@ var
 begin
   // process variables
   for variable in Self.Variables do
-    Instance.SetVariable(variable.Name, variable.Value);
+    Instance.SaveVariable(variable.Name, variable.Value);
 
    // start token
   Instance.AddToken(Self.StartNode);
@@ -513,12 +511,12 @@ begin
   // Optimize this later!
   while Token <> nil do
   begin
-    Result := FInstance.GetTokenVariable(Token, Name);
+    Result := FInstance.LoadVariable(Name, Token.Id);
     if Result <> nil then
       Exit;
     Token := FindToken(Token.ParentId);
   end;
-  Result := FInstance.GetVariable(Name);
+  Result := FInstance.LoadVariable(Name);
 end;
 
 function TExecutionContext.GetLocalVariable(Token: TToken;
@@ -527,9 +525,9 @@ var
   Variable: IVariable;
 begin
   if Token <> nil then
-    Variable := FInstance.GetTokenVariable(Token, Name)
+    Variable := FInstance.LoadVariable(Name, Token.Id)
   else
-    Variable := FInstance.GetVariable(Name);
+    Variable := FInstance.LoadVariable(Name);
   if Variable <> nil then
     Result := Variable.Value
   else
@@ -568,9 +566,9 @@ procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
   Value: TValue);
 begin
   if Token <> nil then
-    FInstance.SetTokenVariable(Token.Id, Name, Value)
+    FInstance.SaveVariable(Name, Value, Token.Id)
   else
-    FInstance.SetVariable(Name, Value);
+    FInstance.SaveVariable(Name, Value);
 end;
 
 procedure TExecutionContext.SetVariable(Token: TToken; const Name: string;
@@ -581,11 +579,11 @@ begin
   // check if we already have a variable in scope. If we do, update it, otherwise
   // create a new one
   Variable := FindVariable(Token, Name);
-  if (Variable <> nil) and (Variable.TokenId <> '') then
-    FInstance.SetTokenVariable(Variable.TokenId, Name, Value)
+  if (Variable <> nil) then
+    FInstance.SaveVariable(Name, Value, Variable.TokenId)
   else
     // set global variable
-    FInstance.SetVariable(Name, Value);
+    FInstance.SaveVariable(Name, Value);
 end;
 
 { TValidationResult }

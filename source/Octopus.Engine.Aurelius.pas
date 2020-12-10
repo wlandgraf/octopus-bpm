@@ -72,7 +72,7 @@ begin
   end;
   if Variables <> nil then
     for Variable in Variables do
-      Instance.SetVariable(Variable.Name, Variable.Value);
+      Instance.SaveVariable(Variable.Name, Variable.Value);
 end;
 
 function TAureliusOctopusEngine.CreateRepository: IOctopusRepository;
