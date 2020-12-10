@@ -19,8 +19,7 @@ type
     FInstanceChecked: boolean;
     FProcessedTokens: TList<string>;
     procedure PrepareExecution;
-    procedure ProcessNode(Node: TFlowNode);
-    procedure ProcessToken(Token: TToken);
+    procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
   public
     constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData);
     destructor Destroy; override;
@@ -62,9 +61,9 @@ begin
 
   repeat
     // Find next active token to process
-    token := nil;
-    tokens := FInstance.GetTokens;
+    tokens := FInstance.LoadTokens;
     try
+      token := nil;
       for tempToken in tokens do
         if tempToken.Status = TTokenStatus.Active then
         begin
@@ -80,7 +79,7 @@ begin
         raise EOctopusException.CreateFmt(SErrorTokenReprocessed, [token.Id]);
       FProcessedTokens.Add(token.Id);
 
-      ProcessToken(token);
+      ProcessNode(tokens, FProcess.GetNode(token.NodeId));
       FStatus := TRunnerStatus.Processed;
     finally
       tokens.Free;
@@ -94,7 +93,7 @@ var
   token: TToken;
   tokens: TList<TToken>;
 begin
-  tokens := FInstance.GetTokens;
+  tokens := FInstance.LoadTokens;
   try
     for token in tokens do
       if token.Status = TTokenStatus.Waiting then
@@ -109,21 +108,16 @@ begin
   FProcessedTokens.Clear;
 end;
 
-procedure TWorkflowRunner.ProcessNode(Node: TFlowNode);
+procedure TWorkflowRunner.ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
 var
   context: TExecutionContext;
 begin
-  context := TExecutionContext.Create(FInstance, FProcess, Node);
+  context := TExecutionContext.Create(Tokens, FInstance, FProcess, Node);
   try
     Node.Execute(context);
   finally
     context.Free;
   end;
-end;
-
-procedure TWorkflowRunner.ProcessToken(Token: TToken);
-begin
-  ProcessNode(FProcess.GetNode(token.NodeId));
 end;
 
 end.

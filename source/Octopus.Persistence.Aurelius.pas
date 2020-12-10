@@ -43,7 +43,7 @@ type
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition; const ParentId: string); overload;
-    function GetTokens: TList<TToken>; overload;
+    function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -257,7 +257,7 @@ begin
   end;
 end;
 
-function TAureliusInstanceData.GetTokens: TList<TToken>;
+function TAureliusInstanceData.LoadTokens: TList<TToken>;
 var
   tokenList: TList<TTokenEntity>;
   Manager: TObjectManager;

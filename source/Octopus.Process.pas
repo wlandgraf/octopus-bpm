@@ -76,7 +76,7 @@ type
     function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition; const ParentId: string); overload;
-    function GetTokens: TList<TToken>; overload;
+    function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
@@ -202,13 +202,17 @@ type
 
   TExecutionContext = class
   strict private
+    FTokens: TList<TToken>;
     FInstance: IProcessInstanceData;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
     function FindToken(const Id: string): TToken;
     function FindVariable(Token: TToken; const Name: string): IVariable;
+  protected
+    property Tokens: TList<TToken> read FTokens;
   public
-    constructor Create(AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
+    constructor Create(ATokens: TList<TToken>; AInstance: IProcessInstanceData;
+      AProcess: TWorkflowProcess; ANode: TFlowNode);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
 
     function GetVariable(Token: TToken; const Name: string): TValue;
@@ -484,9 +488,11 @@ begin
     FInstance.AddToken(Transition, '');
 end;
 
-constructor TExecutionContext.Create(AInstance: IProcessInstanceData;
-  AProcess: TWorkflowProcess; ANode: TFlowNode);
+constructor TExecutionContext.Create(ATokens: TList<TToken>;
+  AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
 begin
+  inherited Create;
+  FTokens := ATokens;
   FInstance := AInstance;
   FProcess := AProcess;
   FNode := ANode;
@@ -509,19 +515,13 @@ end;
 
 function TExecutionContext.FindToken(const Id: string): TToken;
 var
-  Tokens: TList<TToken>;
   I: Integer;
 begin
   // search from newest to oldest because we are likely to search active token
   // than historical ones
-  Tokens := GetTokens(nil);
-  try
-    for I := Tokens.Count -1 downto 0 do
-      if Tokens[I].Id = Id then
-        Exit(Tokens[I]);
-  finally
-//    Tokens.Free;
-  end;
+  for I := Tokens.Count -1 downto 0 do
+    if Tokens[I].Id = Id then
+      Exit(Tokens[I]);
   Result := nil;
 end;
 
@@ -558,16 +558,11 @@ function TExecutionContext.GetTokens(
 var
   I: Integer;
 begin
-  Result := Instance.GetTokens;
+  Result := TList<TToken>.Create;
   try
-    I := 0;
-    while I < Result.Count do
-    begin
-      if not Assigned(Predicate) or Predicate(Result[I]) then
-        Inc(I)
-      else
-        Result.Delete(I);
-    end;
+    for I := 0 to Tokens.Count - 1 do
+      if not Assigned(Predicate) or Predicate(Tokens[I]) then
+        Result.Add(Tokens[I]);
   except
     Result.Free;
     raise;
