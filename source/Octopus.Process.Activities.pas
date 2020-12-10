@@ -19,20 +19,12 @@ type
     procedure ExecuteInstance(Context: TActivityExecutionContext); virtual; abstract;
   end;
 
-  TActivityExecutionContext = class
+  TActivityExecutionContext = class(TTokenExecutionContext)
   private
-    FToken: TToken;
     FDone: boolean;
-    FInstance: IProcessInstanceData;
-    FContext: TExecutionContext;
     function GetNode: TFlowNode;
   public
     constructor Create(AContext: TExecutionContext; AToken: TToken);
-    function GetVariable(const Name: string): TValue;
-    procedure SetVariable(const Name: string; Value: TValue);
-    function GetLocalVariable(const Name: string): TValue;
-    procedure SetLocalVariable(const Name: string; Value: TValue);
-    property Token: TToken read FToken;
     property Done: boolean read FDone write FDone;
     property Node: TFlowNode read GetNode;
   end;
@@ -124,35 +116,13 @@ end;
 
 constructor TActivityExecutionContext.Create(AContext: TExecutionContext; AToken: TToken);
 begin
-  FContext := AContext;
-  FInstance := AContext.Instance;
-  FToken := AToken;
+  inherited Create(AContext, AToken);
   FDone := true;
-end;
-
-function TActivityExecutionContext.GetLocalVariable(const Name: string): TValue;
-begin
-  Result := FContext.GetLocalVariable(Token, Name);
 end;
 
 function TActivityExecutionContext.GetNode: TFlowNode;
 begin
-  Result := FContext.Node;
-end;
-
-function TActivityExecutionContext.GetVariable(const Name: string): TValue;
-begin
-  Result := FContext.GetVariable(Token, Name);
-end;
-
-procedure TActivityExecutionContext.SetLocalVariable(const Name: string; Value: TValue);
-begin
-  FContext.SetLocalVariable(Token, Name, Value);
-end;
-
-procedure TActivityExecutionContext.SetVariable(const Name: string; Value: TValue);
-begin
-  FContext.SetVariable(Token, Name, Value);
+  Result := Context.Node;
 end;
 
 { TActivityExecutor }

@@ -105,6 +105,21 @@ type
     property OutgoingTransitions: TList<TTransition> read FOutgoingTransitions;
   end;
 
+  TTokenExecutionContext = class
+  strict private
+    FToken: TToken;
+    FContext: TExecutionContext;
+  strict protected
+    property Context: TExecutionContext read FContext;
+  public
+    constructor Create(AContext: TExecutionContext; AToken: TToken);
+    function GetVariable(const Name: string): TValue;
+    procedure SetVariable(const Name: string; Value: TValue);
+    function GetLocalVariable(const Name: string): TValue;
+    procedure SetLocalVariable(const Name: string; Value: TValue);
+    property Token: TToken read FToken;
+  end;
+
   TCondition = class
   public
     function Evaluate(Context: TExecutionContext): Boolean; virtual; abstract;
@@ -652,6 +667,37 @@ begin
       Result := (Token.Status <> TTokenStatus.Finished) and
         ((NodeId = '') or (Token.NodeId = NodeId));
     end;
+end;
+
+{ TTokenExecutionContext }
+
+constructor TTokenExecutionContext.Create(AContext: TExecutionContext;
+  AToken: TToken);
+begin
+  inherited Create;
+  FContext := AContext;
+  FToken := AToken;
+end;
+
+function TTokenExecutionContext.GetLocalVariable(const Name: string): TValue;
+begin
+  Result := FContext.GetLocalVariable(Token, Name);
+end;
+
+function TTokenExecutionContext.GetVariable(const Name: string): TValue;
+begin
+  Result := FContext.GetVariable(Token, Name);
+end;
+
+procedure TTokenExecutionContext.SetLocalVariable(const Name: string;
+  Value: TValue);
+begin
+  FContext.SetLocalVariable(Token, Name, Value);
+end;
+
+procedure TTokenExecutionContext.SetVariable(const Name: string; Value: TValue);
+begin
+  FContext.SetVariable(Token, Name, Value);
 end;
 
 end.
