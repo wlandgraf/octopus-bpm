@@ -12,6 +12,21 @@ uses
   Octopus.Engine.Runner;
 
 type
+  IAureliusStorage = interface(IStorage)
+  ['{B44D57EE-E5CC-4B7E-BFDA-57A5C635003A}']
+    function GetPool: IDBConnectionPool;
+    property Pool: IDBConnectionPool read GetPool;
+  end;
+
+  TAureliusStorage = class(TInterfacedObject, IAureliusStorage)
+  strict private
+    FPool: IDBConnectionPool;
+    function GetPool: IDBConnectionPool;
+  public
+    constructor Create(APool: IDBConnectionPool);
+    property Pool: IDBConnectionPool read GetPool;
+  end;
+
   TAureliusOctopusEngine = class(TInterfacedObject, IOctopusEngine)
   strict private
     FPool: IDBConnectionPool;
@@ -100,8 +115,10 @@ procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;
   Instance: IProcessInstanceData);
 var
   runner: TWorkflowRunner;
+  storage: IAureliusStorage;
 begin
-  runner := TWorkflowRunner.Create(Process, Instance);
+  storage := TAureliusStorage.Create(Self.Pool);
+  runner := TWorkflowRunner.Create(Process, Instance, storage);
   try
     runner.Execute;
   finally
@@ -123,6 +140,19 @@ begin
   finally
     Process.Free;
   end;
+end;
+
+{ TAureliusStorage }
+
+constructor TAureliusStorage.Create(APool: IDBConnectionPool);
+begin
+  inherited Create;
+  FPool := APool;
+end;
+
+function TAureliusStorage.GetPool: IDBConnectionPool;
+begin
+  Result := FPool;
 end;
 
 end.

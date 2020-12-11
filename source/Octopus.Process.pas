@@ -197,6 +197,10 @@ type
     property ParentId: string read FParentId write FParentId;
   end;
 
+  IStorage = interface
+  ['{BDDCC6DA-89CC-47FC-961E-8B059AF79EC9}']
+  end;
+
   TTokenPredicateFunc = reference to function(Token: TToken): Boolean;
 
   TExecutionContext = class
@@ -205,13 +209,14 @@ type
     FInstance: IProcessInstanceData;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
+    FStorage: IStorage;
     function FindToken(const Id: string): TToken;
     function FindVariable(Token: TToken; const Name: string): IVariable;
   protected
     property Tokens: TList<TToken> read FTokens;
   public
     constructor Create(ATokens: TList<TToken>; AInstance: IProcessInstanceData;
-      AProcess: TWorkflowProcess; ANode: TFlowNode);
+      AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
 
     function GetVariable(Token: TToken; const Name: string): TValue;
@@ -223,6 +228,7 @@ type
 
     property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
+    property Storage: IStorage read FStorage;
     property Node: TFlowNode read FNode;
   end;
 
@@ -485,13 +491,15 @@ begin
 end;
 
 constructor TExecutionContext.Create(ATokens: TList<TToken>;
-  AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode);
+  AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode;
+  AStorage: IStorage);
 begin
   inherited Create;
   FTokens := ATokens;
   FInstance := AInstance;
   FProcess := AProcess;
   FNode := ANode;
+  FStorage := AStorage;
 end;
 
 function TExecutionContext.FindToken(const Id: string): TToken;
