@@ -106,10 +106,15 @@ type
     property OutgoingTransitions: TList<TTransition> read FOutgoingTransitions;
   end;
 
+  IStorage = interface
+  ['{BDDCC6DA-89CC-47FC-961E-8B059AF79EC9}']
+  end;
+
   TTokenExecutionContext = class
   strict private
     FToken: TToken;
     FContext: TExecutionContext;
+    function GetStorage: IStorage;
   strict protected
     property Context: TExecutionContext read FContext;
   public
@@ -119,6 +124,7 @@ type
     function GetLocalVariable(const Name: string): TValue;
     procedure SetLocalVariable(const Name: string; Value: TValue);
     property Token: TToken read FToken;
+    property Storage: IStorage read GetStorage;
   end;
 
   TTransitionExecutionContext = class(TTokenExecutionContext)
@@ -195,10 +201,6 @@ type
     property ProducerId: string read FProducerId write FProducerId;
     property Status: TTokenStatus read FStatus write FStatus;
     property ParentId: string read FParentId write FParentId;
-  end;
-
-  IStorage = interface
-  ['{BDDCC6DA-89CC-47FC-961E-8B059AF79EC9}']
   end;
 
   TTokenPredicateFunc = reference to function(Token: TToken): Boolean;
@@ -709,6 +711,11 @@ end;
 function TTokenExecutionContext.GetLocalVariable(const Name: string): TValue;
 begin
   Result := FContext.GetLocalVariable(Token, Name);
+end;
+
+function TTokenExecutionContext.GetStorage: IStorage;
+begin
+  Result := FContext.Storage;
 end;
 
 function TTokenExecutionContext.GetVariable(const Name: string): TValue;
