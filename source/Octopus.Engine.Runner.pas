@@ -18,11 +18,11 @@ type
     FStatus: TRunnerStatus;
     FInstanceChecked: boolean;
     FProcessedTokens: TList<string>;
-    FStorage: TStorage;
+    FStorage: IStorage;
     procedure PrepareExecution;
     procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
   public
-    constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData; Storage: TStorage);
+    constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData; Storage: IStorage);
     destructor Destroy; override;
     procedure Execute;
     property Status: TRunnerStatus read FStatus;
@@ -37,7 +37,7 @@ uses
 { TWorkflowRunner }
 
 constructor TWorkflowRunner.Create(Process: TWorkflowProcess;
-  Instance: IProcessInstanceData; Storage: TStorage);
+  Instance: IProcessInstanceData; Storage: IStorage);
 begin
   inherited Create;
   FProcessedTokens := TList<string>.Create;
