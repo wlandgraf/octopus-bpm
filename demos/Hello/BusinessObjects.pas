@@ -9,7 +9,7 @@ uses
 type
   TYoungPersonCondition = class(TCondition)
   public
-    function Evaluate(Context: TExecutionContext): Boolean; override;
+    function Evaluate(Context: TTransitionExecutionContext): Boolean; override;
   end;
 
   TWriteLnActivity = class(TActivity)
@@ -38,9 +38,9 @@ end;
 
 { TYoungPersonCondition }
 
-function TYoungPersonCondition.Evaluate(Context: TExecutionContext): Boolean;
+function TYoungPersonCondition.Evaluate(Context: TTransitionExecutionContext): Boolean;
 begin
-  Result := Context.Instance.GetVariable('age').AsInteger <= 70;
+  Result := Context.GetVariable('age').AsInteger <= 70;
 end;
 
 end.
