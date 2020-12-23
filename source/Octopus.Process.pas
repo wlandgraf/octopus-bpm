@@ -82,8 +82,8 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
-    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
+    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;  deprecated;
+    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');  deprecated;
   end;
 
   TFlowNode = class abstract(TFlowElement)
