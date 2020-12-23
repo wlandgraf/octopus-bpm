@@ -78,19 +78,24 @@ type
     [Association([TAssociationProp.Lazy], [TCascadeType.SaveUpdate])]
     [JoinColumn('PROC_DEFINITION_ID', [])]
     FProcessDefinition: Proxy<TProcessDefinitionEntity>;
+    [Column('CREATED_ON', [TColumnProp.Required, TColumnProp.NoUpdate])]
     FCreatedOn: TDateTime;
     FFinishedOn: Nullable<TDateTime>;
+    FReference: Nullable<string>;
     FStatus: TProcessInstanceStatus;
     function GetProcessDefinition: TProcessDefinitionEntity;
     procedure SetProcessDefinition(const Value: TProcessDefinitionEntity);
+    function GetProcessId: string;
   strict protected
     property RowVersion: Integer read FRowVersion;
   public
     property Id: string read FId write FId;
     property ProcessDefinition: TProcessDefinitionEntity read GetProcessDefinition write SetProcessDefinition;
+    property Reference: Nullable<string> read FReference write FReference;
     property CreatedOn: TDateTime read FCreatedOn write FCreatedOn;
     property FinishedOn: Nullable<TDateTime> read FFinishedOn write FFinishedOn;
     property Status: TProcessInstanceStatus read FStatus write FStatus;
+    property ProcessId: string read GetProcessId;
   end;
 
   [Enumeration(TEnumMappingType.emInteger)]
@@ -199,6 +204,19 @@ uses
 function TProcessInstanceEntity.GetProcessDefinition: TProcessDefinitionEntity;
 begin
   Result := FProcessDefinition.Value;
+end;
+
+function TProcessInstanceEntity.GetProcessId: string;
+begin
+  if FProcessDefinition.Available then
+  begin
+    if Assigned(FProcessDefinition.Value) then
+      Result := FProcessDefinition.Value.Id
+    else
+      Result := '';
+  end
+  else
+    Result := VarToStr(FProcessDefinition.Key);
 end;
 
 procedure TProcessInstanceEntity.SetProcessDefinition(

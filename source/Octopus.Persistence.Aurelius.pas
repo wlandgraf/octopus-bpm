@@ -9,6 +9,7 @@ uses
   System.Rtti,
   System.TypInfo,
   Generics.Collections,
+  Aurelius.Criteria.Base,
   Aurelius.Drivers.Interfaces,
   Aurelius.Engine.ObjectManager,
   Aurelius.Mapping.Explorer,
@@ -47,6 +48,20 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
+    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable; deprecated;
+    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = ''); deprecated;
+  end;
+
+  TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService)
+  private
+    FInstanceId: string;
+    Manager: TObjectManager;
+    procedure FillVariable(InstanceVar: TVariableEntity; Value: TValue);
+    function GetInstanceEntity(Manager: TObjectManager): TProcessInstanceEntity;
+  public
+    constructor Create(Pool: IDBConnectionPool; const InstanceId: string);
+  public
+    { IOctopusInstanceService methods }
     function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
@@ -63,8 +78,20 @@ type
 
   TAureliusRuntime = class(TAureliusPersistence, IOctopusRuntime)
   public
-    function CreateInstance(const ProcessId: string): string;
+    function CreateInstance(const ProcessId, Reference: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
+    function CreateInstanceQuery: IInstanceQuery;
+  end;
+
+  TAureliusInstanceQuery = class(TAureliusPersistence, IInstanceQuery)
+  strict private
+    FInstanceId: string;
+    FReference: string;
+    procedure BuildCriteria(Criteria: TCriteria);
+  public
+    function InstanceId(const AInstanceId: string): IInstanceQuery;
+    function Reference(const AReference: string): IInstanceQuery;
+    function Results: TArray<IProcessInstance>;
   end;
 
   TAureliusProcessDefinition = class(TInterfacedObject, IProcessDefinition)
@@ -91,6 +118,27 @@ type
     property CreatedOn: TDateTime read GetCreatedOn;
   end;
 
+  TAureliusProcessInstance = class(TInterfacedObject, IProcessInstance)
+  strict private
+    FId: string;
+    FProcessId: string;
+    FReference: string;
+    FCreatedOn: TDateTime;
+    FFinishedOn: TDateTime;
+    function GetId: string;
+    function GetProcessId: string;
+    function GetReference: string;
+    function GetCreatedOn: TDateTime;
+    function GetFinishedOn: TDateTime;
+  public
+    constructor Create(Entity: TProcessInstanceEntity);
+    property Id: string read GetId;
+    property ProcessId: string read GetProcessId;
+    property Reference: string read GetReference;
+    property CreatedOn: TDateTime read GetCreatedOn;
+    property FinishedOn: TDateTime read GetFinishedOn;
+  end;
+
   TAureliusVariable = class(TInterfacedObject, IVariable)
   strict private
     FName: string;
@@ -111,7 +159,6 @@ implementation
 
 uses
   System.Variants,
-  Aurelius.Criteria.Base,
   Aurelius.Criteria.Linq,
   Aurelius.Criteria.Projections,
   Aurelius.Types.Nullable,
@@ -434,7 +481,7 @@ end;
 { TAureliusRuntime }
 
 function TAureliusRuntime.CreateInstance(
-  const ProcessId: string): string;
+  const ProcessId, Reference: string): string;
 var
   Manager: TObjectManager;
   Instance: TProcessInstanceEntity;
@@ -455,12 +502,19 @@ begin
     Manager.AddToGarbage(Instance);
     Instance.CreatedOn := Now;
     Instance.ProcessDefinition := Definition;
+    if Reference <> '' then
+      Instance.Reference := Reference;
     Manager.Save(Instance);
 
     Result := Instance.Id;
   finally
     Manager.Free;
   end;
+end;
+
+function TAureliusRuntime.CreateInstanceQuery: IInstanceQuery;
+begin
+  Result := TAureliusInstanceQuery.Create(Pool);
 end;
 
 function TAureliusRuntime.GetInstanceProcessId(
@@ -660,6 +714,208 @@ begin
       TOctopusDataTypes.Default.Get(Variable.ValueType).NativeType)
   else
     result := TValue.Empty;
+end;
+
+{ TAureliusInstanceSerice }
+
+constructor TAureliusInstanceService.Create(Pool: IDBConnectionPool;
+  const InstanceId: string);
+begin
+  inherited Create(Pool);
+  FInstanceId := InstanceId;
+end;
+
+procedure TAureliusInstanceService.FillVariable(InstanceVar: TVariableEntity;
+  Value: TValue);
+var
+  dataType: TOctopusDataType;
+begin
+  if Value.TypeInfo <> nil then
+  begin
+    dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
+    InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
+    InstanceVar.ValueType := dataType.Name;
+  end
+  else
+  begin
+    InstanceVar.Value := '';
+    InstanceVar.ValueType := '';
+  end;
+end;
+
+function TAureliusInstanceService.GetInstanceEntity(
+  Manager: TObjectManager): TProcessInstanceEntity;
+begin
+  Result := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Result = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
+end;
+
+function TAureliusInstanceService.LoadVariable(const Name,
+  TokenId: string): IVariable;
+var
+  varEnt: TVariableEntity;
+  Criteria: TCriteria<TVariableEntity>;
+  Manager: TObjectManager;
+begin
+  Manager := CreateManager;
+  try
+    Criteria := Manager.Find<TVariableEntity>
+      .CreateAlias('Instance', 'i')
+      .CreateAlias('Token', 't')
+      .Where((Linq['i.Id'] = FInstanceId)
+         and (Linq['Name'].ILike(Name)));
+
+    if TokenId <> '' then
+      Criteria.Add(Linq['t.Id'] = tokenId)
+    else
+      Criteria.Add(Linq['t.Id'].IsNull);
+
+    varEnt := Criteria.UniqueResult;
+
+    if varEnt <> nil then
+      Result := TAureliusVariable.Create(varEnt)
+    else
+      Result := nil
+  finally
+    Manager.Free;
+  end;
+end;
+
+procedure TAureliusInstanceService.SaveVariable(const Name: string;
+  const Value: TValue; const TokenId: string);
+var
+  tokenEnt: TTokenEntity;
+  varEnt: TVariableEntity;
+  Criteria: TCriteria<TVariableEntity>;
+begin
+  Manager := CreateManager;
+  try
+    Criteria := Manager.Find<TVariableEntity>
+      .CreateAlias('Instance', 'i')
+      .CreateAlias('Token', 't')
+      .Where((Linq['i.Id'] = FInstanceId)
+         and (Linq['Name'].ILike(Name)));
+
+    if TokenId <> '' then
+      Criteria.Add(Linq['t.Id'] = tokenId)
+    else
+      Criteria.Add(Linq['t.Id'].IsNull);
+
+    varEnt := Criteria.UniqueResult;
+
+    if varEnt = nil then
+    begin
+      varEnt := TVariableEntity.Create;
+      Manager.AddToGarbage(varEnt);
+      varEnt.Instance := GetInstanceEntity(Manager);
+      varEnt.Name := Name;
+      if TokenId <> '' then
+      begin
+        tokenEnt := Manager.Find<TTokenEntity>(TokenId);
+        if tokenEnt = nil then
+          raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, TokenId]);
+        varEnt.Token := tokenEnt;
+      end;
+      FillVariable(varEnt, Value);
+      Manager.Save(varEnt);
+    end
+    else
+    begin
+      FillVariable(varEnt, Value);
+      Manager.Flush(varEnt);
+    end;
+  finally
+    Manager.Free;
+  end;
+end;
+
+{ TAureliusInstanceQuery }
+
+procedure TAureliusInstanceQuery.BuildCriteria(Criteria: TCriteria);
+begin
+  if FInstanceId <> '' then
+    Criteria.Add(Linq['Id'] = FInstanceId);
+  if FReference <> '' then
+    Criteria.Add(Linq['Reference'].ILike(FReference));
+end;
+
+function TAureliusInstanceQuery.InstanceId(
+  const AInstanceId: string): IInstanceQuery;
+begin
+  FInstanceId := AInstanceId;
+  Result := Self;
+end;
+
+function TAureliusInstanceQuery.Reference(
+  const AReference: string): IInstanceQuery;
+begin
+  FReference := AReference;
+  Result := Self;
+end;
+
+function TAureliusInstanceQuery.Results: TArray<IProcessInstance>;
+var
+  Criteria: TCriteria<TProcessInstanceEntity>;
+  Manager: TObjectManager;
+  Entities: TList<TProcessInstanceEntity>;
+  I: Integer;
+begin
+  Criteria := nil;
+  Manager := CreateManager;
+  try
+    Criteria := Manager.Find<TProcessInstanceEntity>;
+    Criteria.AutoDestroy := False;
+    BuildCriteria(Criteria);
+    Entities := Criteria.List;
+    try
+      SetLength(Result, Entities.Count);
+      for I := 0 to Entities.Count - 1 do
+        Result[I] := TAureliusProcessInstance.Create(Entities[I]);
+    finally
+      Entities.Free;
+    end;
+  finally
+    Criteria.Free;
+    Manager.Free;
+  end;
+end;
+
+{ TAureliusProcessInstance }
+
+constructor TAureliusProcessInstance.Create(Entity: TProcessInstanceEntity);
+begin
+  inherited Create;
+  FId := Entity.Id;
+  FProcessId := Entity.ProcessId;
+  FReference := Entity.Reference.ValueOrDefault;
+  FCreatedOn := Entity.CreatedOn;
+  FFinishedOn := Entity.FinishedOn.ValueOrDefault;
+end;
+
+function TAureliusProcessInstance.GetCreatedOn: TDateTime;
+begin
+  Result := FCreatedOn;
+end;
+
+function TAureliusProcessInstance.GetFinishedOn: TDateTime;
+begin
+  Result := FFinishedOn;
+end;
+
+function TAureliusProcessInstance.GetId: string;
+begin
+  Result := FId;
+end;
+
+function TAureliusProcessInstance.GetProcessId: string;
+begin
+  Result := FProcessId;
+end;
+
+function TAureliusProcessInstance.GetReference: string;
+begin
+  Result := FReference;
 end;
 
 end.
