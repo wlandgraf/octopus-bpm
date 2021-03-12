@@ -29,6 +29,11 @@ var
 
 function CreateHelloProcess: TWorkflowProcess;
 begin
+  {
+   (start) --> <gateway> --- young ---> [hello] ----> (end)
+                    |
+                    +-----------------> [goodbye] --> (end)
+  }
   Result := TProcessBuilder.CreateProcess
     .Variable('age')
     .StartEvent
@@ -76,7 +81,7 @@ var
   HelloProcess: TWorkflowProcess;
 begin
   try
-    Pool := TSingletonDBConnectionFactory.Create(TSQLiteNativeConnectionAdapter.Create(':memory:'));
+    Pool := TSingletonDBConnectionFactory.Create(TSQLiteNativeConnectionAdapter.Create('D:\trash\octopus.db'));
     TDatabaseManager.Update(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
     Engine := TAureliusOctopusEngine.Create(Pool);
     HelloProcess := CreateHelloProcess;

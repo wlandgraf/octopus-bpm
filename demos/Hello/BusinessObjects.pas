@@ -40,7 +40,7 @@ end;
 
 function TYoungPersonCondition.Evaluate(Context: TTransitionExecutionContext): Boolean;
 begin
-  Result := Context.GetVariable('age').AsInteger <= 70;
+  Result := Context.GetVariable('age').AsInteger <= 90;
 end;
 
 end.
