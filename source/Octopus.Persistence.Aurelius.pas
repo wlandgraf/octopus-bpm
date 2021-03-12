@@ -372,7 +372,7 @@ begin
   Manager := CreateManager;
   try
     tokenEnt := TTokenEntity.Create;
-    Manager.AddToGarbage(tokenEnt);
+    Manager.AddOwnership(tokenEnt);
     tokenEnt.Status := TTokenEntityStatus.Active;
     tokenEnt.CreatedOn := Now;
     tokenEnt.TransitionId := Token.TransitionId;
@@ -427,7 +427,7 @@ begin
     if varEnt = nil then
     begin
       varEnt := TVariableEntity.Create;
-      Manager.AddToGarbage(varEnt);
+      Manager.AddOwnership(varEnt);
       varEnt.Instance := GetInstanceEntity(Manager);
       varEnt.Name := Name;
       if TokenId <> '' then
@@ -499,7 +499,7 @@ begin
 //      Definition := nil;
 
     Instance := TProcessInstanceEntity.Create;
-    Manager.AddToGarbage(Instance);
+    Manager.AddOwnership(Instance);
     Instance.CreatedOn := Now;
     Instance.ProcessDefinition := Definition;
     if Reference <> '' then
@@ -620,7 +620,7 @@ begin
     end;
 
     Definition := TProcessDefinitionEntity.Create;
-    Manager.AddToGarbage(Definition);
+    Manager.AddOwnership(Definition);
     Definition.Key := Key;
     Definition.Name := Name;
     Definition.Version := NextVersion;
@@ -807,7 +807,7 @@ begin
     if varEnt = nil then
     begin
       varEnt := TVariableEntity.Create;
-      Manager.AddToGarbage(varEnt);
+      Manager.AddOwnership(varEnt);
       varEnt.Instance := GetInstanceEntity(Manager);
       varEnt.Name := Name;
       if TokenId <> '' then
