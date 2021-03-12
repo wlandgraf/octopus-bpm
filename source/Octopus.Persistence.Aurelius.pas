@@ -87,10 +87,15 @@ type
   strict private
     FInstanceId: string;
     FReference: string;
+    FVariables: TList<TCustomCriterion>;
     procedure BuildCriteria(Criteria: TCriteria);
+    procedure AddVariable(const Expr: TCustomCriterion);
   public
+    procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
     function InstanceId(const AInstanceId: string): IInstanceQuery;
     function Reference(const AReference: string): IInstanceQuery;
+    function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
     function Results: TArray<IProcessInstance>;
   end;
 
@@ -391,9 +396,13 @@ var
 begin
   if Value.TypeInfo <> nil then
   begin
+    InstanceVar.ClearValue;
     dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
     InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
     InstanceVar.ValueType := dataType.Name;
+    {$MESSAGE WARN 'Review this'}
+    if Value.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar] then
+      InstanceVar.StringValue := Value.AsString;
   end
   else
   begin
@@ -732,9 +741,13 @@ var
 begin
   if Value.TypeInfo <> nil then
   begin
+    InstanceVar.ClearValue;
     dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
     InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
     InstanceVar.ValueType := dataType.Name;
+    {$MESSAGE WARN 'Review this'}
+    if Value.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar] then
+      InstanceVar.StringValue := Value.AsString;
   end
   else
   begin
@@ -832,12 +845,31 @@ end;
 
 { TAureliusInstanceQuery }
 
+procedure TAureliusInstanceQuery.AddVariable(const Expr: TCustomCriterion);
+begin
+  FVariables.Add(Expr);
+end;
+
+procedure TAureliusInstanceQuery.AfterConstruction;
+begin
+  inherited;
+  FVariables := TObjectList<TCustomCriterion>.Create;
+end;
+
+procedure TAureliusInstanceQuery.BeforeDestruction;
+begin
+  FVariables.Free;
+  inherited;
+end;
+
 procedure TAureliusInstanceQuery.BuildCriteria(Criteria: TCriteria);
 begin
   if FInstanceId <> '' then
     Criteria.Add(Linq['Id'] = FInstanceId);
   if FReference <> '' then
     Criteria.Add(Linq['Reference'].ILike(FReference));
+  while FVariables.Count > 0 do
+    Criteria.Add(FVariables.Extract(FVariables[0]));
 end;
 
 function TAureliusInstanceQuery.InstanceId(
@@ -879,6 +911,29 @@ begin
     Criteria.Free;
     Manager.Free;
   end;
+end;
+
+function TAureliusInstanceQuery.VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
+var
+  ValueCondition: string;
+  StringValue: string;
+begin
+  if not (AValue.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar]) then
+    {$MESSAGE WARN 'Review this'}
+    raise Exception.Create('Can only search for string variables');
+
+  ValueCondition := 'STRING_VALUE = ?';
+  StringValue := AValue.AsString;
+
+  AddVariable(
+    Linq.Sql<string, string>(Format(
+      'EXISTS (SELECT 1 FROM OCT_VARIABLE ' +
+      'WHERE (PROC_INSTANCE_ID = {Id}) AND ' +
+      '  (UPPER(NAME) = UPPER(?)) AND (TOKEN_ID IS NULL) AND (%s))',
+      [ValueCondition]),
+      AName, StringValue)
+  );
+  Result := Self;
 end;
 
 { TAureliusProcessInstance }

@@ -43,6 +43,7 @@ type
   ['{C306ADC2-09FE-425E-AC8B-9C2B352C6FA5}']
     function InstanceId(const AInstanceId: string): IInstanceQuery;
     function Reference(const AReference: string): IInstanceQuery;
+    function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
     function Results: TArray<IProcessInstance>;
   end;
 

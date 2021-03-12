@@ -167,6 +167,15 @@ type
     [Column('_VALUE', [], 65536)]
     FValue: string;
 
+    [Column('INT64_VALUE')]
+    FInt64Value: Nullable<Int64>;
+
+    [Column('STRING_VALUE')]
+    FStringValue: Nullable<string>;
+
+    [Column('DOUBLE_VALUE')]
+    FDoubleValue: Nullable<Double>;
+
     [Column('VALUE_TYPE', [], 255)]
     FValueType: string;
 
@@ -185,9 +194,13 @@ type
   strict protected
     property RowVersion: Integer read FRowVersion;
   public
+    procedure ClearValue;
     property Id: string read FId write FId;
     property Name: string read FName write FName;
     property Value: string read FValue write FValue;
+    property Int64Value: Nullable<Int64> read FInt64Value write FInt64Value;
+    property StringValue: Nullable<string> read FStringValue write FStringValue;
+    property DoubleValue: Nullable<Double> read FDoubleValue write FDoubleValue;
     property ValueType: string read FValueType write FValueType;
     property Instance: TProcessInstanceEntity read GetInstance write SetInstance;
     property Token: TTokenEntity read GetToken write SetToken;
@@ -270,6 +283,14 @@ begin
 end;
 
 { TVariableEntity }
+
+procedure TVariableEntity.ClearValue;
+begin
+  Value := '';
+  Int64Value := SNull;
+  StringValue := SNull;
+  DoubleValue := SNull;
+end;
 
 function TVariableEntity.GetInstance: TProcessInstanceEntity;
 begin
