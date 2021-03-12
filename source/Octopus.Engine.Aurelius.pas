@@ -52,6 +52,7 @@ type
     procedure RunInstance(const InstanceId: string); overload;
 
     procedure SetVariable(const InstanceId, VariableName: string; const Value: TValue);
+    function GetVariable(const InstanceId, VariableName: string): IVariable;
     function FindInstances: IInstanceQuery;
   end;
 
@@ -133,6 +134,11 @@ end;
 function TAureliusOctopusEngine.FindInstances: IInstanceQuery;
 begin
   Result := CreateRuntime.CreateInstanceQuery;
+end;
+
+function TAureliusOctopusEngine.GetVariable(const InstanceId, VariableName: string): IVariable;
+begin
+  Result := CreateInstanceService(InstanceId).LoadVariable(VariableName);
 end;
 
 function TAureliusOctopusEngine.PublishDefinition(const Key, Process: string; const Name: string = ''): string;
