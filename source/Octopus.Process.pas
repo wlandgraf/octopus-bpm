@@ -30,6 +30,7 @@ type
   end;
 
   IProcessInstanceData = interface;
+  IVariablesPersistence = interface;
 
   TWorkflowProcess = class
   private
@@ -42,7 +43,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure InitInstance(Instance: IProcessInstanceData);
+    procedure InitInstance(Instance: IProcessInstanceData; Variables: IVariablesPersistence);
     function StartNode: TFlowNode;
     function FindNode(const AId: string): TFlowNode;
     function FindTransition(const AId: string): TTransition;
@@ -82,8 +83,12 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;  deprecated;
-    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');  deprecated;
+  end;
+
+  IVariablesPersistence = interface
+  ['{E5AB071A-E3F5-48F6-8012-03C335618183}']
+    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
+    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
 
   TFlowNode = class abstract(TFlowElement)
@@ -209,6 +214,7 @@ type
   strict private
     FTokens: TList<TToken>;
     FInstance: IProcessInstanceData;
+    FVariables: IVariablesPersistence;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
     FStorage: IStorage;
@@ -218,7 +224,7 @@ type
     property Tokens: TList<TToken> read FTokens;
   public
     constructor Create(ATokens: TList<TToken>; AInstance: IProcessInstanceData;
-      AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
+      AVariables: IVariablesPersistence; AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
 
     function GetVariable(Token: TToken; const Name: string): TValue;
@@ -316,13 +322,14 @@ begin
     raise EOctopusTransitionNotFound.Create(AId);
 end;
 
-procedure TWorkflowProcess.InitInstance(Instance: IProcessInstanceData);
+procedure TWorkflowProcess.InitInstance(Instance: IProcessInstanceData;
+  Variables: IVariablesPersistence);
 var
   variable: TVariable;
 begin
   // process variables
   for variable in Self.Variables do
-    Instance.SaveVariable(variable.Name, variable.Value);
+    Variables.SaveVariable(variable.Name, variable.Value);
 
    // start token
   Instance.AddToken(Self.StartNode);
@@ -493,12 +500,13 @@ begin
 end;
 
 constructor TExecutionContext.Create(ATokens: TList<TToken>;
-  AInstance: IProcessInstanceData; AProcess: TWorkflowProcess; ANode: TFlowNode;
-  AStorage: IStorage);
+  AInstance: IProcessInstanceData; AVariables: IVariablesPersistence;
+  AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
 begin
   inherited Create;
   FTokens := ATokens;
   FInstance := AInstance;
+  FVariables := AVariables;
   FProcess := AProcess;
   FNode := ANode;
   FStorage := AStorage;
@@ -521,12 +529,12 @@ begin
   // Optimize this later!
   while Token <> nil do
   begin
-    Result := FInstance.LoadVariable(Name, Token.Id);
+    Result := FVariables.LoadVariable(Name, Token.Id);
     if Result <> nil then
       Exit;
     Token := FindToken(Token.ParentId);
   end;
-  Result := FInstance.LoadVariable(Name);
+  Result := FVariables.LoadVariable(Name);
 end;
 
 function TExecutionContext.GetLocalVariable(Token: TToken;
@@ -535,9 +543,9 @@ var
   Variable: IVariable;
 begin
   if Token <> nil then
-    Variable := FInstance.LoadVariable(Name, Token.Id)
+    Variable := FVariables.LoadVariable(Name, Token.Id)
   else
-    Variable := FInstance.LoadVariable(Name);
+    Variable := FVariables.LoadVariable(Name);
   if Variable <> nil then
     Result := Variable.Value
   else
@@ -576,9 +584,9 @@ procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
   Value: TValue);
 begin
   if Token <> nil then
-    FInstance.SaveVariable(Name, Value, Token.Id)
+    FVariables.SaveVariable(Name, Value, Token.Id)
   else
-    FInstance.SaveVariable(Name, Value);
+    FVariables.SaveVariable(Name, Value);
 end;
 
 procedure TExecutionContext.SetVariable(Token: TToken; const Name: string;
@@ -590,10 +598,10 @@ begin
   // create a new one
   Variable := FindVariable(Token, Name);
   if (Variable <> nil) then
-    FInstance.SaveVariable(Name, Value, Variable.TokenId)
+    FVariables.SaveVariable(Name, Value, Variable.TokenId)
   else
     // set global variable
-    FInstance.SaveVariable(Name, Value);
+    FVariables.SaveVariable(Name, Value);
 end;
 
 { TValidationResult }

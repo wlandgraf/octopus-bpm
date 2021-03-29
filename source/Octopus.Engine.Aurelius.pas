@@ -35,7 +35,8 @@ type
     function CreateRepository: IOctopusRepository;
     function CreateRuntime: IOctopusRuntime;
     function CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
-    procedure RunInstance(Process: TWorkflowProcess; Instance: IProcessInstanceData); overload;
+    procedure RunInstance(Process: TWorkflowProcess; Instance: IProcessInstanceData;
+      Variables: IVariablesPersistence); overload;
   public
     constructor Create(APool: IDBConnectionPool); overload;
     constructor Create(APool: IDBConnectionPool; AProcessFactory: IOctopusProcessFactory); overload;
@@ -77,6 +78,7 @@ function TAureliusOctopusEngine.CreateInstance(const ProcessId,
   Reference: string; Variables: TEnumerable<TVariable>): string;
 var
   Instance: IProcessInstanceData;
+  VariablesPersistence: IVariablesPersistence;
   Process: TWorkflowProcess;
   Variable: TVariable;
 begin
@@ -84,13 +86,14 @@ begin
   try
     Result := CreateRuntime.CreateInstance(ProcessId, Reference);
     Instance := TAureliusInstanceData.Create(Pool, Result);
-    Process.InitInstance(Instance);
+    VariablesPersistence := TAureliusInstanceService.Create(Pool, Result);
+    Process.InitInstance(Instance, VariablesPersistence);
   finally
     Process.Free;
   end;
   if Variables <> nil then
     for Variable in Variables do
-      Instance.SaveVariable(Variable.Name, Variable.Value);
+      VariablesPersistence.SaveVariable(Variable.Name, Variable.Value);
 end;
 
 function TAureliusOctopusEngine.CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
@@ -147,13 +150,13 @@ begin
 end;
 
 procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;
-  Instance: IProcessInstanceData);
+  Instance: IProcessInstanceData; Variables: IVariablesPersistence);
 var
   runner: TWorkflowRunner;
   storage: IAureliusStorage;
 begin
   storage := TAureliusStorage.Create(Self.Pool);
-  runner := TWorkflowRunner.Create(Process, Instance, storage);
+  runner := TWorkflowRunner.Create(Process, Instance, Variables, storage);
   try
     runner.Execute;
   finally
@@ -166,12 +169,14 @@ var
   Process: TWorkflowProcess;
   ProcessId: string;
   Instance: IProcessInstanceData;
+  VariablesPersistence: IVariablesPersistence;
 begin
   ProcessId := CreateRuntime.GetInstanceProcessId(InstanceId);
   Process := CreateRepository.GetDefinition(ProcessId);
   try
     Instance := TAureliusInstanceData.Create(Pool, InstanceId);
-    RunInstance(Process, Instance);
+    VariablesPersistence := TAureliusInstanceService.Create(Pool, InstanceId);
+    RunInstance(Process, Instance, VariablesPersistence);
   finally
     Process.Free;
   end;

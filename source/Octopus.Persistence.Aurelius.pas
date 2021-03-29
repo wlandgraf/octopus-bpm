@@ -52,7 +52,7 @@ type
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = ''); deprecated;
   end;
 
-  TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService)
+  TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService, IVariablesPersistence)
   private
     FInstanceId: string;
     Manager: TObjectManager;
@@ -400,7 +400,7 @@ begin
     dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
     InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
     InstanceVar.ValueType := dataType.Name;
-    {$MESSAGE WARN 'Review this'}
+    {.$MESSAGE WARN 'Review this'}
     if Value.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar] then
       InstanceVar.StringValue := Value.AsString;
   end
@@ -745,7 +745,7 @@ begin
     dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
     InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
     InstanceVar.ValueType := dataType.Name;
-    {$MESSAGE WARN 'Review this'}
+    {.$MESSAGE WARN 'Review this'}
     if Value.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar] then
       InstanceVar.StringValue := Value.AsString;
   end
@@ -919,7 +919,7 @@ var
   StringValue: string;
 begin
   if not (AValue.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar]) then
-    {$MESSAGE WARN 'Review this'}
+    {.$MESSAGE WARN 'Review this'}
     raise Exception.Create('Can only search for string variables');
 
   ValueCondition := 'STRING_VALUE = ?';
