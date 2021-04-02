@@ -31,6 +31,8 @@ resourcestring
   SErrorActivateTokenWrongStatus    = 'Cannot activate token "%s" with status %d';
   SErrorDeactivateTokenWrongStatus  = 'Cannot deactivate token "%s" with status %d';
   SErrorTokenReprocessed            = 'Internal error: token "%s" reprocessed';
+  SErrorInstanceLockFailed          = 'Cannot lock process instance "%s"';
+  SErrorInstanceLockFailedException = 'Cannot lock process instance "%s" (%s: %s)';
 
   STokenValidationParentRequired    = 'Parent is required if token belongs to a transition';
 

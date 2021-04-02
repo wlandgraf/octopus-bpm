@@ -6,6 +6,7 @@ interface
 
 uses
   System.SysUtils,
+  System.DateUtils,
   System.Rtti,
   System.TypInfo,
   Generics.Collections,
@@ -31,9 +32,7 @@ type
   TAureliusInstanceData = class(TAureliusPersistence, IProcessInstanceData)
   private
     FInstanceId: string;
-    Manager: TObjectManager;
     procedure SaveToken(Token: TToken);
-    procedure FillVariable(InstanceVar: TVariableEntity; Value: TValue);
     function TokenFromEntity(InstanceToken: TTokenEntity): TToken;
     function GetInstanceEntity(Manager: TObjectManager): TProcessInstanceEntity;
   public
@@ -48,8 +47,8 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
-    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable; deprecated;
-    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = ''); deprecated;
+    procedure Lock(TimeoutMS: Integer);
+    procedure Unlock;
   end;
 
   TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService, IVariablesPersistence)
@@ -285,37 +284,6 @@ begin
   Result := FInstanceId;
 end;
 
-function TAureliusInstanceData.LoadVariable(const Name: string;
-  const TokenId: string = ''): IVariable;
-var
-  varEnt: TVariableEntity;
-  Criteria: TCriteria<TVariableEntity>;
-  Manager: TObjectManager;
-begin
-  Manager := CreateManager;
-  try
-    Criteria := Manager.Find<TVariableEntity>
-      .CreateAlias('Instance', 'i')
-      .CreateAlias('Token', 't')
-      .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'].ILike(Name)));
-
-    if TokenId <> '' then
-      Criteria.Add(Linq['t.Id'] = tokenId)
-    else
-      Criteria.Add(Linq['t.Id'].IsNull);
-
-    varEnt := Criteria.UniqueResult;
-
-    if varEnt <> nil then
-      Result := TAureliusVariable.Create(varEnt)
-    else
-      Result := nil
-  finally
-    Manager.Free;
-  end;
-end;
-
 function TAureliusInstanceData.LoadTokens: TList<TToken>;
 var
   tokenList: TList<TTokenEntity>;
@@ -342,6 +310,27 @@ begin
     finally
       tokenList.Free;
     end;
+  finally
+    Manager.Free;
+  end;
+end;
+
+procedure TAureliusInstanceData.Lock(TimeoutMS: Integer);
+var
+  Instance: TProcessInstanceEntity;
+  Manager: TObjectManager;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+    if Instance = nil then
+      raise EOctopusInstanceNotFound.Create(FInstanceId);
+
+    if Instance.LockExpiration.HasValue and (Instance.LockExpiration.ValueOrDefault < Now) then
+      raise EOctopusInstanceLockFailed.Create(FInstanceId);
+
+    Instance.LockExpiration := IncMillisecond(Now, TimeoutMS);
+    Manager.Flush(Instance);
   finally
     Manager.Free;
   end;
@@ -390,75 +379,6 @@ begin
   end;
 end;
 
-procedure TAureliusInstanceData.FillVariable(InstanceVar: TVariableEntity; Value: TValue);
-var
-  dataType: TOctopusDataType;
-begin
-  if Value.TypeInfo <> nil then
-  begin
-    InstanceVar.ClearValue;
-    dataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
-    InstanceVar.Value := TWorkflowSerializer.ValueToJson(Value, dataType.NativeType);
-    InstanceVar.ValueType := dataType.Name;
-    {.$MESSAGE WARN 'Review this'}
-    if Value.TypeInfo.Kind in [tkString, tkLString, tkWString, tkUString, tkChar, tkWChar] then
-      InstanceVar.StringValue := Value.AsString;
-  end
-  else
-  begin
-    InstanceVar.Value := '';
-    InstanceVar.ValueType := '';
-  end;
-end;
-
-procedure TAureliusInstanceData.SaveVariable(const Name: string;
-  const Value: TValue; const TokenId: string = '');
-var
-  tokenEnt: TTokenEntity;
-  varEnt: TVariableEntity;
-  Criteria: TCriteria<TVariableEntity>;
-begin
-  Manager := CreateManager;
-  try
-    Criteria := Manager.Find<TVariableEntity>
-      .CreateAlias('Instance', 'i')
-      .CreateAlias('Token', 't')
-      .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'].ILike(Name)));
-
-    if TokenId <> '' then
-      Criteria.Add(Linq['t.Id'] = tokenId)
-    else
-      Criteria.Add(Linq['t.Id'].IsNull);
-
-    varEnt := Criteria.UniqueResult;
-
-    if varEnt = nil then
-    begin
-      varEnt := TVariableEntity.Create;
-      Manager.AddOwnership(varEnt);
-      varEnt.Instance := GetInstanceEntity(Manager);
-      varEnt.Name := Name;
-      if TokenId <> '' then
-      begin
-        tokenEnt := Manager.Find<TTokenEntity>(TokenId);
-        if tokenEnt = nil then
-          raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, TokenId]);
-        varEnt.Token := tokenEnt;
-      end;
-      FillVariable(varEnt, Value);
-      Manager.Save(varEnt);
-    end
-    else
-    begin
-      FillVariable(varEnt, Value);
-      Manager.Flush(varEnt);
-    end;
-  finally
-    Manager.Free;
-  end;
-end;
-
 function TAureliusInstanceData.TokenFromEntity(InstanceToken: TTokenEntity): TToken;
 const
   TokenStatusMap: array[TTokenEntityStatus] of TTokenStatus =
@@ -472,6 +392,24 @@ begin
   Result.ProducerId := InstanceToken.ProducerId.ValueOrDefault;
   Result.ParentId := InstanceToken.ParentId;
   Result.Status := TokenStatusMap[InstanceToken.Status];
+end;
+
+procedure TAureliusInstanceData.Unlock;
+var
+  Instance: TProcessInstanceEntity;
+  Manager: TObjectManager;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+    if Instance = nil then
+      raise EOctopusInstanceNotFound.Create(FInstanceId);
+
+    Instance.LockExpiration := SNull;
+    Manager.Flush(Instance);
+  finally
+    Manager.Free;
+  end;
 end;
 
 { TAureliusPersistence }

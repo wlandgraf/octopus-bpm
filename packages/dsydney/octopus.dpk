@@ -31,7 +31,8 @@ requires
   rtl,
   dbrtl,
   tmsbcl,
-  aurelius;
+  aurelius,
+  sparkle;
 
 contains
   Octopus.Activities.Task in '..\..\source\Octopus.Activities.Task.pas',
@@ -56,6 +57,7 @@ contains
   Octopus.Repository in '..\..\source\Octopus.Repository.pas',
   Octopus.Resources in '..\..\source\Octopus.Resources.pas',
   Octopus.Validator in '..\..\source\Octopus.Validator.pas',
-  Octopus.CommonAncestor in '..\..\source\Octopus.CommonAncestor.pas';
+  Octopus.CommonAncestor in '..\..\source\Octopus.CommonAncestor.pas',
+  Octopus.Job.Runner in '..\..\source\Octopus.Job.Runner.pas';
 
 end.

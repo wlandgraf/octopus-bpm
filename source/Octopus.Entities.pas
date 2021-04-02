@@ -83,6 +83,7 @@ type
     FFinishedOn: Nullable<TDateTime>;
     FReference: Nullable<string>;
     FStatus: TProcessInstanceStatus;
+    FLockExpiration: Nullable<TDateTime>;
     function GetProcessDefinition: TProcessDefinitionEntity;
     procedure SetProcessDefinition(const Value: TProcessDefinitionEntity);
     function GetProcessId: string;
@@ -96,6 +97,7 @@ type
     property FinishedOn: Nullable<TDateTime> read FFinishedOn write FFinishedOn;
     property Status: TProcessInstanceStatus read FStatus write FStatus;
     property ProcessId: string read GetProcessId;
+    property LockExpiration: Nullable<TDateTime> read FLockExpiration write FLockExpiration;
   end;
 
   [Enumeration(TEnumMappingType.emInteger)]

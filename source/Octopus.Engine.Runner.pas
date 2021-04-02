@@ -20,8 +20,10 @@ type
     FInstanceChecked: boolean;
     FProcessedTokens: TList<string>;
     FStorage: IStorage;
+    FLockTimeoutMS: Integer;
     procedure PrepareExecution;
     procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
+    procedure InternalExecute;
   public
     constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData;
       Variables: IVariablesPersistence; Storage: IStorage);
@@ -42,6 +44,7 @@ constructor TWorkflowRunner.Create(Process: TWorkflowProcess; Instance: IProcess
   Variables: IVariablesPersistence; Storage: IStorage);
 begin
   inherited Create;
+  FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
   FProcessedTokens := TList<string>.Create;
   FProcess := Process;
   FInstance := Instance;
@@ -59,6 +62,16 @@ begin
 end;
 
 procedure TWorkflowRunner.Execute;
+begin
+  FInstance.Lock(FLockTimeoutMS);
+  try
+    InternalExecute;
+  finally
+    FInstance.Unlock;
+  end;
+end;
+
+procedure TWorkflowRunner.InternalExecute;
 var
   tempToken, token: TToken;
   tokens: TList<TToken>;

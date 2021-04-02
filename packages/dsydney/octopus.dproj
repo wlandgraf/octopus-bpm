@@ -116,6 +116,7 @@
         <DCCReference Include="dbrtl.dcp"/>
         <DCCReference Include="tmsbcl.dcp"/>
         <DCCReference Include="aurelius.dcp"/>
+        <DCCReference Include="sparkle.dcp"/>
         <DCCReference Include="..\..\source\Octopus.Activities.Task.pas"/>
         <DCCReference Include="..\..\source\Octopus.DataTypes.pas"/>
         <DCCReference Include="..\..\source\Octopus.Engine.Aurelius.pas"/>
@@ -139,6 +140,7 @@
         <DCCReference Include="..\..\source\Octopus.Resources.pas"/>
         <DCCReference Include="..\..\source\Octopus.Validator.pas"/>
         <DCCReference Include="..\..\source\Octopus.CommonAncestor.pas"/>
+        <DCCReference Include="..\..\source\Octopus.Job.Runner.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

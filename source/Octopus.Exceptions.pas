@@ -39,6 +39,12 @@ type
     constructor Create(const TokenId: string);
   end;
 
+  EOctopusInstanceLockFailed = class(EOctopusException)
+  public
+    constructor Create(const InstanceId: string); overload;
+    constructor Create(const InstanceId: string; E: Exception); overload;
+  end;
+
 implementation
 
 uses
@@ -84,6 +90,18 @@ end;
 constructor EOctopusTokenNotFound.Create(const TokenId: string);
 begin
   inherited CreateFmt(SErrorTokenNotFound, [TokenId]);
+end;
+
+{ EOctopusInstanceLockFailed }
+
+constructor EOctopusInstanceLockFailed.Create(const InstanceId: string; E: Exception);
+begin
+  inherited CreateFmt(SErrorInstanceLockFailedException, [InstanceId, E.ClassName, E.Message]);
+end;
+
+constructor EOctopusInstanceLockFailed.Create(const InstanceId: string);
+begin
+  inherited CreateFmt(SErrorInstanceLockFailed, [InstanceId]);
 end;
 
 end.

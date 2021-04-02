@@ -83,6 +83,8 @@ type
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
     procedure DeactivateToken(Token: TToken);
+    procedure Lock(Timeout: Integer);
+    procedure Unlock;
   end;
 
   IVariablesPersistence = interface
