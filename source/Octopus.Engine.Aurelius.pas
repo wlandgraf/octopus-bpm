@@ -33,15 +33,16 @@ type
     FPool: IDBConnectionPool;
     FProcessFactory: IOctopusProcessFactory;
     FLockTimeoutMS: Integer;
-    function CreateRepository: IOctopusRepository;
-    function CreateRuntime: IOctopusRuntime;
+    function CreateRepository(Pool: IDBConnectionPool): IOctopusRepository;
+    function CreateRuntime(Pool: IDBConnectionPool): IOctopusRuntime;
     function CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
     procedure RunInstance(Process: TWorkflowProcess; Instance: IProcessInstanceData;
-      Variables: IVariablesPersistence); overload;
+      Variables: IVariablesPersistence; Connection: IDBConnection); overload;
+    function CreateSingletonPool: IDBConnectionPool;
   public
     constructor Create(APool: IDBConnectionPool); overload;
     constructor Create(APool: IDBConnectionPool; AProcessFactory: IOctopusProcessFactory); overload;
-    property Pool: IDBConnectionPool read FPool;
+//    property Pool: IDBConnectionPool read FPool;
   public
     { IOctopusEngine methods }
     function PublishDefinition(const Key, Process: string; const Name: string = ''): string;
@@ -61,6 +62,9 @@ type
   end;
 
 implementation
+
+uses
+  Aurelius.Drivers.Base;
 
 { TAureliusOctopusEngine }
 
@@ -85,24 +89,35 @@ var
   VariablesPersistence: IVariablesPersistence;
   Process: TWorkflowProcess;
   Variable: TVariable;
+  SingletonPool: IDBConnectionPool;
+  Trans: IDBTransaction;
 begin
-  Process := CreateRepository.GetDefinition(ProcessId);
+  SingletonPool := CreateSingletonPool;
+  Trans := SingletonPool.GetConnection.BeginTransaction;
   try
-    Result := CreateRuntime.CreateInstance(ProcessId, Reference);
-    Instance := TAureliusInstanceData.Create(Pool, Result);
-    VariablesPersistence := TAureliusInstanceService.Create(Pool, Result);
-    Process.InitInstance(Instance, VariablesPersistence);
-  finally
-    Process.Free;
+    Process := CreateRepository(SingletonPool).GetDefinition(ProcessId);
+    try
+      Result := CreateRuntime(SingletonPool).CreateInstance(ProcessId, Reference);
+      Instance := TAureliusInstanceData.Create(SingletonPool, Result);
+      VariablesPersistence := TAureliusInstanceService.Create(SingletonPool, Result);
+      Process.InitInstance(Instance, VariablesPersistence);
+    finally
+      Process.Free;
+    end;
+    if Variables <> nil then
+      for Variable in Variables do
+        VariablesPersistence.SaveVariable(Variable.Name, Variable.Value);
+    Trans.Commit;
+  except
+    Trans.Rollback;
+    raise;
   end;
-  if Variables <> nil then
-    for Variable in Variables do
-      VariablesPersistence.SaveVariable(Variable.Name, Variable.Value);
+
 end;
 
 function TAureliusOctopusEngine.CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
 begin
-  Result := TAureliusInstanceService.Create(Pool, InstanceId);
+  Result := TAureliusInstanceService.Create(FPool, InstanceId);
 end;
 
 function TAureliusOctopusEngine.CreateInstance(const ProcessId,
@@ -122,25 +137,30 @@ begin
   Result := CreateInstance(ProcessId, '', Variables);
 end;
 
-function TAureliusOctopusEngine.CreateRepository: IOctopusRepository;
+function TAureliusOctopusEngine.CreateRepository(Pool: IDBConnectionPool): IOctopusRepository;
 begin
   Result := TAureliusRepository.Create(Pool, FProcessFactory);
 end;
 
-function TAureliusOctopusEngine.CreateRuntime: IOctopusRuntime;
+function TAureliusOctopusEngine.CreateRuntime(Pool: IDBConnectionPool): IOctopusRuntime;
 begin
   Result := TAureliusRuntime.Create(Pool);
+end;
+
+function TAureliusOctopusEngine.CreateSingletonPool: IDBConnectionPool;
+begin
+  Result := TSingletonDBConnectionFactory.Create(FPool.GetConnection);
 end;
 
 function TAureliusOctopusEngine.FindDefinitionByKey(
   const Key: string): IProcessDefinition;
 begin
-  Result := CreateRepository.FindDefinitionByKey(Key);
+  Result := CreateRepository(FPool).FindDefinitionByKey(Key);
 end;
 
 function TAureliusOctopusEngine.FindInstances: IInstanceQuery;
 begin
-  Result := CreateRuntime.CreateInstanceQuery;
+  Result := CreateRuntime(FPool).CreateInstanceQuery;
 end;
 
 function TAureliusOctopusEngine.GetVariable(const InstanceId, VariableName: string): IVariable;
@@ -150,17 +170,15 @@ end;
 
 function TAureliusOctopusEngine.PublishDefinition(const Key, Process: string; const Name: string = ''): string;
 begin
-  Result := CreateRepository.PublishDefinition(Key, Process, Name);
+  Result := CreateRepository(FPool).PublishDefinition(Key, Process, Name);
 end;
 
 procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;
-  Instance: IProcessInstanceData; Variables: IVariablesPersistence);
+  Instance: IProcessInstanceData; Variables: IVariablesPersistence; Connection: IDBConnection);
 var
   runner: TWorkflowRunner;
-  storage: IAureliusStorage;
 begin
-  storage := TAureliusStorage.Create(Self.Pool);
-  runner := TWorkflowRunner.Create(Process, Instance, Variables, storage);
+  runner := TWorkflowRunner.Create(Process, Instance, Variables, Connection);
   try
     runner.Execute;
   finally
@@ -174,13 +192,15 @@ var
   ProcessId: string;
   Instance: IProcessInstanceData;
   VariablesPersistence: IVariablesPersistence;
+  SingletonPool: IDBConnectionPool;
 begin
-  ProcessId := CreateRuntime.GetInstanceProcessId(InstanceId);
-  Process := CreateRepository.GetDefinition(ProcessId);
+  SingletonPool := CreateSingletonPool;
+  ProcessId := CreateRuntime(SingletonPool).GetInstanceProcessId(InstanceId);
+  Process := CreateRepository(SingletonPool).GetDefinition(ProcessId);
   try
-    Instance := TAureliusInstanceData.Create(Pool, InstanceId);
-    VariablesPersistence := TAureliusInstanceService.Create(Pool, InstanceId);
-    RunInstance(Process, Instance, VariablesPersistence);
+    Instance := TAureliusInstanceData.Create(SingletonPool, InstanceId);
+    VariablesPersistence := TAureliusInstanceService.Create(SingletonPool, InstanceId);
+    RunInstance(Process, Instance, VariablesPersistence, SingletonPool.GetConnection);
   finally
     Process.Free;
   end;
@@ -190,9 +210,12 @@ procedure TAureliusOctopusEngine.RunPendingInstances;
 var
   Runtime: IOctopusRuntime;
   Instance: IProcessInstance;
+  Instances: TArray<IProcessInstance>;
 begin
-  Runtime := CreateRuntime;
-  for Instance in Runtime.GetPendingInstances do
+  Runtime := CreateRuntime(FPool);
+  Instances := Runtime.GetPendingInstances;
+  Runtime := nil;
+  for Instance in Instances do
     RunInstance(Instance.Id)
 end;
 
@@ -201,7 +224,7 @@ procedure TAureliusOctopusEngine.SetVariable(const InstanceId,
 var
   Instance: IProcessInstanceData;
 begin
-  Instance := TAureliusInstanceData.Create(Pool, InstanceId);
+  Instance := TAureliusInstanceData.Create(FPool, InstanceId);
   Instance.Lock(FLockTimeoutMS);
   try
     CreateInstanceService(InstanceId).SaveVariable(VariableName, Value);

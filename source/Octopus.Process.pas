@@ -114,12 +114,7 @@ type
     property OutgoingTransitions: TList<TTransition> read FOutgoingTransitions;
   end;
 
-  IStorage = interface
-  ['{CAA30934-5095-427F-B8FC-94902D6597FE}']
-//    procedure BeginTransaction;
-//    procedure Commit;
-//    procedure Rollback;
-  end;
+  IStorage = IInterface;
 
   TTokenExecutionContext = class
   strict private

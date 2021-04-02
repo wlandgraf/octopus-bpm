@@ -4,6 +4,7 @@ interface
 
 uses
   Generics.Collections,
+  Aurelius.Drivers.Interfaces,
   Octopus.Process;
 
 type
@@ -19,14 +20,14 @@ type
     FStatus: TRunnerStatus;
     FInstanceChecked: boolean;
     FProcessedTokens: TList<string>;
-    FStorage: IStorage;
+    FConnection: IDBConnection;
     FLockTimeoutMS: Integer;
     procedure PrepareExecution;
     procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
     procedure InternalExecute;
   public
     constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData;
-      Variables: IVariablesPersistence; Storage: IStorage);
+      Variables: IVariablesPersistence; Connection: IDBConnection);
     destructor Destroy; override;
     procedure Execute;
     property Status: TRunnerStatus read FStatus;
@@ -41,7 +42,7 @@ uses
 { TWorkflowRunner }
 
 constructor TWorkflowRunner.Create(Process: TWorkflowProcess; Instance: IProcessInstanceData;
-  Variables: IVariablesPersistence; Storage: IStorage);
+  Variables: IVariablesPersistence; Connection: IDBConnection);
 begin
   inherited Create;
   FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
@@ -49,7 +50,7 @@ begin
   FProcess := Process;
   FInstance := Instance;
   FVariables := Variables;
-  FStorage := Storage;
+  FConnection := Connection;
 
   FInstanceChecked := false;
   FStatus := TRunnerStatus.None;
@@ -149,7 +150,7 @@ procedure TWorkflowRunner.ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
 var
   context: TExecutionContext;
 begin
-  context := TExecutionContext.Create(Tokens, FInstance, FVariables, FProcess, Node, FStorage);
+  context := TExecutionContext.Create(Tokens, FInstance, FVariables, FProcess, Node, FConnection);
   try
     Node.Execute(context);
   finally
