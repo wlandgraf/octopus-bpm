@@ -32,6 +32,7 @@ type
   strict private
     FPool: IDBConnectionPool;
     FProcessFactory: IOctopusProcessFactory;
+    FLockTimeoutMS: Integer;
     function CreateRepository: IOctopusRepository;
     function CreateRuntime: IOctopusRuntime;
     function CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
@@ -72,6 +73,7 @@ constructor TAureliusOctopusEngine.Create(APool: IDBConnectionPool;
   AProcessFactory: IOctopusProcessFactory);
 begin
   inherited Create;
+  FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
   FPool := APool;
   FProcessFactory := AProcessFactory;
 end;
@@ -196,8 +198,17 @@ end;
 
 procedure TAureliusOctopusEngine.SetVariable(const InstanceId,
   VariableName: string; const Value: TValue);
+var
+  Instance: IProcessInstanceData;
 begin
-  CreateInstanceService(InstanceId).SaveVariable(VariableName, Value);
+  Instance := TAureliusInstanceData.Create(Pool, InstanceId);
+  Instance.Lock(FLockTimeoutMS);
+  try
+    CreateInstanceService(InstanceId).SaveVariable(VariableName, Value);
+  finally
+    Instance.Unlock;
+  end;
+
 end;
 
 { TAureliusStorage }
