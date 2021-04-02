@@ -149,10 +149,18 @@ end;
 procedure TWorkflowRunner.ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
 var
   context: TExecutionContext;
+  trans: IDBTransaction;
 begin
   context := TExecutionContext.Create(Tokens, FInstance, FVariables, FProcess, Node, FConnection);
   try
-    Node.Execute(context);
+    trans := FConnection.BeginTransaction;
+    try
+      Node.Execute(context);
+      trans.Commit;
+    except
+      trans.Rollback;
+      raise;
+    end;
   finally
     context.Free;
   end;
