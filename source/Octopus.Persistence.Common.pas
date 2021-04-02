@@ -59,6 +59,7 @@ type
     function CreateInstance(const ProcessId, Reference: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
+    function GetPendingInstances: TArray<IProcessInstance>;
   end;
 
   IOctopusInstanceService = interface

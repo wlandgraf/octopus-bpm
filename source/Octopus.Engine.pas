@@ -23,6 +23,8 @@ type
     procedure SetVariable(const InstanceId, VariableName: string; const Value: TValue);
     function GetVariable(const InstanceId, VariableName: string): IVariable;
     function FindInstances: IInstanceQuery;
+
+    procedure RunPendingInstances;
   end;
 
 implementation

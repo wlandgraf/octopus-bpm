@@ -62,7 +62,7 @@ type
   end;
 
   [Enumeration(TEnumMappingType.emInteger)]
-  TProcessInstanceStatus = (Active);
+  TProcessInstanceStatus = (Active, Finished);
 
   [Entity, Automapping]
   [Model(OctopusModel)]

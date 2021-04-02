@@ -49,6 +49,7 @@ type
     procedure DeactivateToken(Token: TToken);
     procedure Lock(TimeoutMS: Integer);
     procedure Unlock;
+    procedure Finish;
   end;
 
   TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService, IVariablesPersistence)
@@ -80,6 +81,7 @@ type
     function CreateInstance(const ProcessId, Reference: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
+    function GetPendingInstances: TArray<IProcessInstance>;
   end;
 
   TAureliusInstanceQuery = class(TAureliusPersistence, IInstanceQuery)
@@ -271,6 +273,24 @@ begin
   inherited;
 end;
 
+procedure TAureliusInstanceData.Finish;
+var
+  Instance: TProcessInstanceEntity;
+  Manager: TObjectManager;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+    if Instance = nil then
+      raise EOctopusInstanceNotFound.Create(FInstanceId);
+
+    Instance.Status := TProcessInstanceStatus.Finished;
+    Manager.Flush(Instance);
+  finally
+    Manager.Free;
+  end;
+end;
+
 function TAureliusInstanceData.GetInstanceEntity(
   Manager: TObjectManager): TProcessInstanceEntity;
 begin
@@ -348,6 +368,7 @@ begin
       raise EOctopusTokenNotFound.CreateFmt(SErrorFinishTokenNotFound, [Token.Id]);
 
     if tokenEnt.Status = TTokenEntityStatus.Finished then
+      Exit;
 
     tokenEnt.FinishedOn := Now;
     tokenEnt.Status := TTokenEntityStatus.Finished;
@@ -481,6 +502,39 @@ begin
     else
       Result := '';
   finally
+    Manager.Free;
+  end;
+end;
+
+function TAureliusRuntime.GetPendingInstances: TArray<IProcessInstance>;
+const
+  MaxAcquiredInstances = 5;
+var
+  Manager: TObjectManager;
+  Entities: TList<TProcessInstanceEntity>;
+  LockDue: TDateTime;
+  Entity: TProcessInstanceEntity;
+  InstanceIds: TList<IProcessInstance>;
+begin
+  InstanceIds := nil;
+  Manager := CreateManager;
+  try
+    LockDue := Now;
+    Entities := Manager.Find<TProcessInstanceEntity>
+      .Take(MaxAcquiredInstances)
+      .Where(Linq['LockExpiration'].IsNull or (Linq['LockExpiration'] < LockDue))
+      .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
+      .Where(Linq['Status'] <> TProcessInstanceStatus.Finished)
+      .List;
+    try
+      for Entity in Entities do
+        InstanceIds.Add(TAureliusProcessInstance.Create(Entity));
+    finally
+      Entities.Free;
+    end;
+    Result := InstanceIds.ToArray;
+  finally
+    InstanceIds.Free;
     Manager.Free;
   end;
 end;

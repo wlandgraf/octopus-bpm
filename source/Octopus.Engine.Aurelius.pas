@@ -55,6 +55,8 @@ type
     procedure SetVariable(const InstanceId, VariableName: string; const Value: TValue);
     function GetVariable(const InstanceId, VariableName: string): IVariable;
     function FindInstances: IInstanceQuery;
+
+    procedure RunPendingInstances;
   end;
 
 implementation
@@ -180,6 +182,16 @@ begin
   finally
     Process.Free;
   end;
+end;
+
+procedure TAureliusOctopusEngine.RunPendingInstances;
+var
+  Runtime: IOctopusRuntime;
+  Instance: IProcessInstance;
+begin
+  Runtime := CreateRuntime;
+  for Instance in Runtime.GetPendingInstances do
+    RunInstance(Instance.Id)
 end;
 
 procedure TAureliusOctopusEngine.SetVariable(const InstanceId,
