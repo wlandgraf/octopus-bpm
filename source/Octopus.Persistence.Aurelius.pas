@@ -346,7 +346,7 @@ begin
     if Instance = nil then
       raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-    if Instance.LockExpiration.HasValue and (Instance.LockExpiration.ValueOrDefault < Now) then
+    if Instance.LockExpiration.HasValue and (Now <= Instance.LockExpiration.ValueOrDefault) then
       raise EOctopusInstanceLockFailed.Create(FInstanceId);
 
     Instance.LockExpiration := IncMillisecond(Now, TimeoutMS);
@@ -519,11 +519,12 @@ begin
   InstanceIds := nil;
   Manager := CreateManager;
   try
+    InstanceIds := TList<IProcessInstance>.Create;
     LockDue := Now;
     Entities := Manager.Find<TProcessInstanceEntity>
       .Take(MaxAcquiredInstances)
       .Where(Linq['LockExpiration'].IsNull or (Linq['LockExpiration'] < LockDue))
-      .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
+//      .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
       .Where(Linq['Status'] <> TProcessInstanceStatus.Finished)
       .List;
     try

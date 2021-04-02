@@ -64,18 +64,24 @@ end;
 procedure TWorkflowRunner.Execute;
 var
   Token: TToken;
+  Tokens: TList<TToken>;
   Finished: Boolean;
 begin
   FInstance.Lock(FLockTimeoutMS);
   try
     InternalExecute;
     Finished := True;
-    for token in FInstance.LoadTokens do
-      if token.Status <> TTokenStatus.Finished then
-      begin
-        Finished := False;
-        break;
-      end;
+    Tokens := FInstance.LoadTokens;
+    try
+      for Token in tokens do
+        if Token.Status <> TTokenStatus.Finished then
+        begin
+          Finished := False;
+          break;
+        end;
+    finally
+      Tokens.Free;
+    end;
     if Finished then
       FInstance.Finish;
   finally
