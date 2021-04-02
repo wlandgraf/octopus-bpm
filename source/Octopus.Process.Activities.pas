@@ -96,7 +96,7 @@ begin
 
     if aec.Done then
     begin
-      Context.Instance.RemoveToken(Token);
+      Context.RemoveToken(Token);
 
       ScanTransitions(Context, Token,
         procedure(Ctxt: TTransitionExecutionContext)
@@ -106,7 +106,7 @@ begin
         end);
     end
     else
-      Context.Instance.DeactivateToken(Token);
+      Context.DeactivateToken(Token);
   finally
     aec.Free;
   end;

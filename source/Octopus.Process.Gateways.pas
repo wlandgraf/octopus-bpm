@@ -177,9 +177,9 @@ begin
 
       // mark the incoming token to remove or persist
       if done then
-        Context.Instance.RemoveToken(token)
+        Context.RemoveToken(token)
       else
-        Context.Instance.DeactivateToken(token);
+        Context.DeactivateToken(token);
     end;
   finally
     tokens.Free;
@@ -249,7 +249,7 @@ begin
 
     // Consume tokens
     for I := 0 to tokensToConsume.Count - 1 do
-      Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
+      Context.RemoveToken(allTokens[tokensToConsume[I]]);
 
     // generate a new token for each outgoing transition evaluated as true
     ScanTransitions(Context, ParentToken,
@@ -306,17 +306,16 @@ begin
           break;
         end;
 
-    for I := 0 to allTokens.Count - 1 do
-      OutputdebugString(PChar(Format('%d - %s, %s',
-        [I, allTokens[I].Id, allTokens[I].ParentId])));
-
+//    for I := 0 to allTokens.Count - 1 do
+//      OutputdebugString(PChar(Format('%d - %s, %s',
+//        [I, allTokens[I].Id, allTokens[I].ParentId])));
 
     // Find the common ancestor for all input tokens (tokens that will be consumed)
     ParentToken := TCommonAncestorFinder.GetCommonAncestorToken(allTokens, tokensToConsume);
 
     // Consume tokens
     for I := 0 to tokensToConsume.Count - 1 do
-      Context.Instance.RemoveToken(allTokens[tokensToConsume[I]]);
+      Context.RemoveToken(allTokens[tokensToConsume[I]]);
 
     // generate a new token for each outgoing transition (no evaluation)
     ScanTransitions(Context, ParentToken,

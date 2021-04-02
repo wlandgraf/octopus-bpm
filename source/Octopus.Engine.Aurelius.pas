@@ -208,7 +208,6 @@ begin
   finally
     Instance.Unlock;
   end;
-
 end;
 
 { TAureliusStorage }
