@@ -115,7 +115,10 @@ type
   end;
 
   IStorage = interface
-  ['{BDDCC6DA-89CC-47FC-961E-8B059AF79EC9}']
+  ['{CAA30934-5095-427F-B8FC-94902D6597FE}']
+//    procedure BeginTransaction;
+//    procedure Commit;
+//    procedure Rollback;
   end;
 
   TTokenExecutionContext = class
@@ -236,8 +239,9 @@ type
     procedure SetLocalVariable(Token: TToken; const Name: string; Value: TValue);
 
     procedure AddToken(Transition: TTransition; Token: TToken);
+    procedure RemoveToken(Token: TToken);
+    procedure DeactivateToken(Token: TToken);
 
-    property Instance: IProcessInstanceData read FInstance;
     property Process: TWorkflowProcess read FProcess;
     property Storage: IStorage read FStorage;
     property Node: TFlowNode read FNode;
@@ -363,7 +367,7 @@ begin
   tokens := Context.GetTokens(TTokens.Active(Self.Id));
   try
     for token in tokens do
-      Context.Instance.DeactivateToken(token);
+      Context.DeactivateToken(token);
   finally
     tokens.Free;
   end;
@@ -400,7 +404,7 @@ begin
   try
     for token in tokens do
     begin
-      Context.Instance.RemoveToken(token);
+      Context.RemoveToken(token);
       ScanTransitions(Context, token,
         procedure(Ctxt: TTransitionExecutionContext)
         begin
@@ -515,6 +519,11 @@ begin
   FStorage := AStorage;
 end;
 
+procedure TExecutionContext.DeactivateToken(Token: TToken);
+begin
+  FInstance.DeactivateToken(Token);
+end;
+
 function TExecutionContext.FindToken(const Id: string): TToken;
 var
   I: Integer;
@@ -581,6 +590,11 @@ begin
     Result := Variable.Value
   else
     Result := TValue.Empty;
+end;
+
+procedure TExecutionContext.RemoveToken(Token: TToken);
+begin
+  FInstance.RemoveToken(Token);
 end;
 
 procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;
