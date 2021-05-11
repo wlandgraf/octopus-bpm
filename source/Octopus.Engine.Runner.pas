@@ -3,7 +3,7 @@ unit Octopus.Engine.Runner;
 interface
 
 uses
-  Generics.Collections,
+  Generics.Collections, SysUtils, DateUtils,
   Aurelius.Drivers.Interfaces,
   Octopus.Process;
 
@@ -22,15 +22,18 @@ type
     FProcessedTokens: TList<string>;
     FConnection: IDBConnection;
     FLockTimeoutMS: Integer;
+    FDueDateInterval: Integer;
     procedure PrepareExecution;
     procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
     procedure InternalExecute;
   public
     constructor Create(Process: TWorkflowProcess; Instance: IProcessInstanceData;
+
       Variables: IVariablesPersistence; Connection: IDBConnection);
     destructor Destroy; override;
     procedure Execute;
     property Status: TRunnerStatus read FStatus;
+    property DueDateInterval: Integer read FDueDateInterval write FDueDateInterval;
   end;
 
 implementation
@@ -46,6 +49,7 @@ constructor TWorkflowRunner.Create(Process: TWorkflowProcess; Instance: IProcess
 begin
   inherited Create;
   FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
+  FDueDateInterval := 30 * 60; // 30 minutes
   FProcessedTokens := TList<string>.Create;
   FProcess := Process;
   FInstance := Instance;
@@ -84,7 +88,9 @@ begin
       Tokens.Free;
     end;
     if Finished then
-      FInstance.Finish;
+      FInstance.Finish
+    else
+      FInstance.SetDueDate(IncSecond(Now, DueDateInterval));
   finally
     FInstance.Unlock;
   end;

@@ -86,6 +86,7 @@ type
     procedure Lock(Timeout: Integer);
     procedure Unlock;
     procedure Finish;
+    procedure SetDueDate(DueDate: TDateTime);
   end;
 
   IVariablesPersistence = interface

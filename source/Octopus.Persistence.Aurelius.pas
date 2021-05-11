@@ -50,6 +50,7 @@ type
     procedure Lock(TimeoutMS: Integer);
     procedure Unlock;
     procedure Finish;
+    procedure SetDueDate(DueDate: TDateTime);
   end;
 
   TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService, IVariablesPersistence)
@@ -285,6 +286,7 @@ begin
       raise EOctopusInstanceNotFound.Create(FInstanceId);
 
     Instance.Status := TProcessInstanceStatus.Finished;
+    Instance.DueDate := SNull;
     Manager.Flush(Instance);
   finally
     Manager.Free;
@@ -395,6 +397,24 @@ begin
     tokenEnt.Instance := GetInstanceEntity(Manager);
     tokenEnt.Parent := Manager.Find<TTokenEntity>(Token.ParentId);
     Manager.Save(tokenEnt);
+  finally
+    Manager.Free;
+  end;
+end;
+
+procedure TAureliusInstanceData.SetDueDate(DueDate: TDateTime);
+var
+  Instance: TProcessInstanceEntity;
+  Manager: TObjectManager;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+    if Instance = nil then
+      raise EOctopusInstanceNotFound.Create(FInstanceId);
+
+    Instance.DueDate := DueDate;
+    Manager.Flush(Instance);
   finally
     Manager.Free;
   end;
@@ -524,8 +544,10 @@ begin
     Entities := Manager.Find<TProcessInstanceEntity>
       .Take(MaxAcquiredInstances)
       .Where(Linq['LockExpiration'].IsNull or (Linq['LockExpiration'] < LockDue))
-//      .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
+      .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
       .Where(Linq['Status'] <> TProcessInstanceStatus.Finished)
+      .OrderBy(TProjections.Condition(Linq['DueDate'].IsNull, Linq.Literal<Integer>(0), Linq.Literal<Integer>(1)))
+      .OrderBy('DueDate')
       .List;
     try
       for Entity in Entities do
