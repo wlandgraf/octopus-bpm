@@ -33,7 +33,7 @@ type
     FPool: IDBConnectionPool;
     FProcessFactory: IOctopusProcessFactory;
     FLockTimeoutMS: Integer;
-    FDueDateInterval: Integer;
+    FDueDateIntervalMS: Int64;
     function CreateRepository(Pool: IDBConnectionPool): IOctopusRepository;
     function CreateRuntime(Pool: IDBConnectionPool): IOctopusRuntime;
     function CreateInstanceService(const InstanceId: string): IOctopusInstanceService;
@@ -61,7 +61,7 @@ type
 
     procedure RunPendingInstances;
 
-    property DueDateInterval: Integer read FDueDateInterval write FDueDateInterval;
+    property DueDateIntervalMS: Int64 read FDueDateIntervalMS write FDueDateIntervalMS;
   end;
 
 implementation
@@ -81,7 +81,7 @@ constructor TAureliusOctopusEngine.Create(APool: IDBConnectionPool;
 begin
   inherited Create;
   FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
-  FDueDateInterval := 30 * 60; // 30 minutes
+  FDueDateIntervalMS := 30 * 60 * 1000; // 30 minutes
   FPool := APool;
   FProcessFactory := AProcessFactory;
 end;
@@ -184,7 +184,7 @@ var
 begin
   runner := TWorkflowRunner.Create(Process, Instance, Variables, Connection);
   try
-    runner.DueDateInterval := DueDateInterval;
+    runner.DueDateIntervalMS := DueDateIntervalMS;
     runner.Execute;
   finally
     runner.Free;

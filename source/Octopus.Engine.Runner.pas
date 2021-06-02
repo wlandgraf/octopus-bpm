@@ -22,7 +22,7 @@ type
     FProcessedTokens: TList<string>;
     FConnection: IDBConnection;
     FLockTimeoutMS: Integer;
-    FDueDateInterval: Integer;
+    FDueDateIntervalMS: Int64;
     procedure PrepareExecution;
     procedure ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
     procedure InternalExecute;
@@ -33,7 +33,7 @@ type
     destructor Destroy; override;
     procedure Execute;
     property Status: TRunnerStatus read FStatus;
-    property DueDateInterval: Integer read FDueDateInterval write FDueDateInterval;
+    property DueDateIntervalMS: Int64 read FDueDateIntervalMS write FDueDateIntervalMS;
   end;
 
 implementation
@@ -49,7 +49,7 @@ constructor TWorkflowRunner.Create(Process: TWorkflowProcess; Instance: IProcess
 begin
   inherited Create;
   FLockTimeoutMS := 5 * 60 * 1000; // 5 minutes
-  FDueDateInterval := 30 * 60; // 30 minutes
+  FDueDateIntervalMS := 30 * 60 * 1000; // 30 minutes
   FProcessedTokens := TList<string>.Create;
   FProcess := Process;
   FInstance := Instance;
@@ -74,6 +74,7 @@ var
 begin
   FInstance.Lock(FLockTimeoutMS);
   try
+    FInstance.SetDueDate(IncMilliSecond(Now, DueDateIntervalMS));
     InternalExecute;
     Finished := True;
     Tokens := FInstance.LoadTokens;
@@ -89,8 +90,6 @@ begin
     end;
     if Finished then
       FInstance.Finish
-    else
-      FInstance.SetDueDate(IncSecond(Now, DueDateInterval));
   finally
     FInstance.Unlock;
   end;
