@@ -67,19 +67,23 @@ type
   TSelectiveValidator<T> = class(TValidator)
   public
     function Validate(const Value: TValue; Context: IValidationContext): IValidationResult; override;
-    function DoValidate(const Value: T; Context: IValidationContext): IValidationResult; virtual; abstract;
+    function DoValidate(const Value: T; Context: IProcessValidationContext): IValidationResult; virtual; abstract;
   end;
 
   TProcessValidator = class(TSelectiveValidator<TWorkflowProcess>)
   end;
 
   TStartNodeValidator = class(TProcessValidator)
-    function DoValidate(const Process: TWorkflowProcess; Context: IValidationContext): IValidationResult; override;
+    function DoValidate(const Process: TWorkflowProcess; Context: IProcessValidationContext): IValidationResult; override;
+  end;
+
+  TDuplicatedIdValidator = class(TSelectiveValidator<TFlowElement>)
+    function DoValidate(const Element: TFlowElement; Context: IProcessValidationContext): IValidationResult; override;
   end;
 
   TIdRequiredValidator = class(TSelectiveValidator<TFlowElement>)
   public
-    function DoValidate(const Value: TFlowElement; Context: IValidationContext): IValidationResult; override;
+    function DoValidate(const Value: TFlowElement; Context: IProcessValidationContext): IValidationResult; override;
   end;
 
   EProcessValidationException = class(EOctopusException)
@@ -119,9 +123,14 @@ end;
 { TElementValidator<T> }
 
 function TSelectiveValidator<T>.Validate(const Value: TValue; Context: IValidationContext): IValidationResult;
+var
+  ProcessContext: IProcessValidationContext;
 begin
+  if not Supports(Context, IProcessValidationContext, ProcessContext) then
+    Exit(TValidationResult.Failed(SErrorInvalidValidationContext));
+
   if Value.IsType<T> then
-    Result := DoValidate(Value.AsType<T>, Context)
+    Result := DoValidate(Value.AsType<T>, ProcessContext)
   else
     Result := TValidationResult.Success;
 end;
@@ -174,6 +183,7 @@ procedure TWorkflowProcessValidator.AddBuiltinValidators;
 begin
   Validators.Add(TStartNodeValidator.Create);
   Validators.Add(TIdRequiredValidator.Create);
+  Validators.Add(TDuplicatedIdValidator.Create);
 end;
 
 constructor TWorkflowProcessValidator.Create;
@@ -218,7 +228,6 @@ begin
       ProcessResult(Validator.Validate(Node, Context), Node);
   end;
 
-
   for Transition in Process.Transitions do
   begin
     ProcessResult(Transition.Validate(Context), Transition);
@@ -233,7 +242,7 @@ end;
 { TStartNodeValidator }
 
 function TStartNodeValidator.DoValidate(const Process: TWorkflowProcess;
-  Context: IValidationContext): IValidationResult;
+  Context: IProcessValidationContext): IValidationResult;
 var
   start, node: TFlowNode;
 begin
@@ -256,11 +265,32 @@ end;
 
 { TNameRequiredValidator }
 
-function TIdRequiredValidator.DoValidate(const Value: TFlowElement; Context: IValidationContext): IValidationResult;
+function TIdRequiredValidator.DoValidate(const Value: TFlowElement; Context: IProcessValidationContext): IValidationResult;
 begin
   if Trim(Value.Id) = '' then
     Result := TValidationResult.Failed(SErrorElementHasNoId);
+end;
 
+{ TDuplicatedIdValidator }
+
+function TDuplicatedIdValidator.DoValidate(const Element: TFlowElement;
+  Context: IProcessValidationContext): IValidationResult;
+var
+  search: TFlowElement;
+begin
+  if Element.Id = '' then
+    Exit(TValidationResult.Success);
+
+  // find another element with same id
+  for search in Context.Process.Nodes do
+    if (search <> Element) and SameText(search.Id, Element.Id) then
+      Exit(TValidationResult.Failed(Format(SDuplicatedElementId, [Element.Id])));
+
+  for search in Context.Process.Transitions do
+    if (search <> Element) and SameText(search.Id, Element.Id) then
+      Exit(TValidationResult.Failed(Format(SDuplicatedElementId, [Element.Id])));
+
+  Result := TValidationResult.Success;
 end;
 
 end.

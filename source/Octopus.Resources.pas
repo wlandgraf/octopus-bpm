@@ -35,6 +35,8 @@ resourcestring
   SErrorInstanceLockFailedException = 'Cannot lock process instance "%s" (%s: %s)';
   SErrorElementHasNoId              = 'Element has no id';
   SErrorProcessValidationFailed     = 'Process validation failed';
+  SErrorInvalidValidationContext    = 'Invalid process validation context';
+  SDuplicatedElementId              = 'Duplicated element id: "%s"';
 
   STokenValidationParentRequired    = 'Parent is required if token belongs to a transition';
 
