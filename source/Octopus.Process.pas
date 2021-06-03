@@ -687,6 +687,7 @@ end;
 
 constructor TFlowElement.Create;
 begin
+  inherited Create;
   FId := TUtils.NewId;
 end;
 

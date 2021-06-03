@@ -40,6 +40,7 @@ type
     procedure RunInstance(Process: TWorkflowProcess; Instance: IProcessInstanceData;
       Variables: IVariablesPersistence; Connection: IDBConnection); overload;
     function CreateSingletonPool: IDBConnectionPool;
+    procedure ValidateDefinition(const ProcessJson: string);
   public
     constructor Create(APool: IDBConnectionPool); overload;
     constructor Create(APool: IDBConnectionPool; AProcessFactory: IOctopusProcessFactory); overload;
@@ -67,6 +68,8 @@ type
 implementation
 
 uses
+  Octopus.Json.Deserializer,
+  Octopus.Process.Validation,
   Aurelius.Drivers.Base;
 
 { TAureliusOctopusEngine }
@@ -174,6 +177,7 @@ end;
 
 function TAureliusOctopusEngine.PublishDefinition(const Key, Process: string; const Name: string = ''): string;
 begin
+  ValidateDefinition(Process);
   Result := CreateRepository(FPool).PublishDefinition(Key, Process, Name);
 end;
 
@@ -235,6 +239,24 @@ begin
     CreateInstanceService(InstanceId).SaveVariable(VariableName, Value);
   finally
     Instance.Unlock;
+  end;
+end;
+
+procedure TAureliusOctopusEngine.ValidateDefinition(const ProcessJson: string);
+var
+  Process: TWorkflowProcess;
+  Validator: TProcessValidator;
+begin
+  Process := TWorkflowDeserializer.ProcessFromJson(ProcessJson);
+  try
+    Validator := TProcessValidator.Create;
+    try
+      Validator.Validate(Process);
+    finally
+      Validator.Free;
+    end;
+  finally
+    Process.Free;
   end;
 end;
 

@@ -89,7 +89,7 @@ begin
       Tokens.Free;
     end;
     if Finished then
-      FInstance.Finish
+      FInstance.Finish;
   finally
     FInstance.Unlock;
   end;
