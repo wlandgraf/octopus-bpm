@@ -144,9 +144,7 @@ begin
   finally
     tokens.Free;
   end;
-
-  for node in FProcess.Nodes do
-    node.EnumTransitions(FProcess);
+  FProcess.Prepare;
 
   FProcessedTokens.Clear;
 end;

@@ -9,16 +9,22 @@ uses
   System.TypInfo,
   Generics.Collections,
   System.Rtti,
+  Aurelius.Validation.Interfaces,
+  Aurelius.Validation,
   Octopus.DataTypes;
 
 type
+  IValidationContext = Aurelius.Validation.Interfaces.IValidationContext;
+  IValidationResult = Aurelius.Validation.Interfaces.IValidationResult;
+  TValidationResult = Aurelius.Validation.TValidationResult;
+  TValidationError = Aurelius.Validation.TValidationError;
+
   TWorkflowProcess = class;
   TFlowNode = class;
   TTransition = class;
   TVariable = class;
   TToken = class;
   TExecutionContext = class;
-  TValidationContext = class;
   TTransitionExecutionContext = class;
 
   Persistent = class(TCustomAttribute)
@@ -44,6 +50,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure InitInstance(Instance: IProcessInstanceData; Variables: IVariablesPersistence);
+    procedure Prepare;
     function StartNode: TFlowNode;
     function FindNode(const AId: string): TFlowNode;
     function FindTransition(const AId: string): TTransition;
@@ -59,7 +66,6 @@ type
     FId: string;
   public
     constructor Create; virtual;
-    procedure Validate(Context: TValidationContext); virtual; abstract;
     [Persistent]
     property Id: string read FId write FId;
   end;
@@ -108,7 +114,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure Execute(Context: TExecutionContext); virtual; abstract;
-    procedure Validate(Context: TValidationContext); override;
+    function Validate(Context: IValidationContext): IValidationResult; virtual;
     procedure EnumTransitions(Process: TWorkflowProcess);
     function IsStart: boolean; virtual;
     property IncomingTransitions: TList<TTransition> read FIncomingTransitions;
@@ -158,7 +164,7 @@ type
     procedure SetCondition(const Value: TCondition);
   public
     destructor Destroy; override;
-    procedure Validate(Context: TValidationContext); override;
+    function Validate(Context: IValidationContext): IValidationResult; virtual;
     function Evaluate(Context: TTransitionExecutionContext): Boolean; virtual;
     property Source: TFlowNode read FSource write FSource;
     property Target: TFlowNode read FTarget write FTarget;
@@ -243,28 +249,6 @@ type
     property Node: TFlowNode read FNode;
   end;
 
-  TValidationResult = class
-  private
-    FElement: TFlowElement;
-    FError: boolean;
-    FMessage: string;
-  public
-    constructor Create(AElement: TFlowElement; AError: boolean; const AMessage: string);
-    property Element: TFlowElement read FElement;
-    property Error: boolean read FError;
-    property Message: string read FMessage;
-  end;
-
-  TValidationContext = class
-  private
-    FResults: TList<TValidationResult>;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    procedure AddError(AElement: TFlowElement; const AMessage: string);
-    property Results: TList<TValidationResult> read FResults;
-  end;
-
   TTokens = class
   public
     class function Pending(const NodeId: string = ''): TTokenPredicateFunc; static;
@@ -336,6 +320,14 @@ begin
 
    // start token
   Instance.AddToken(Self.StartNode);
+end;
+
+procedure TWorkflowProcess.Prepare;
+var
+  node: TFlowNode;
+begin
+  for node in Nodes do
+    node.EnumTransitions(Self);
 end;
 
 function TWorkflowProcess.StartNode: TFlowNode;
@@ -436,10 +428,10 @@ begin
   end;
 end;
 
-procedure TFlowNode.Validate(Context: TValidationContext);
+function TFlowNode.Validate(Context: IValidationContext): IValidationResult;
 begin
   if IncomingTransitions.Count = 0 then
-    Context.AddError(Self, SErrorNoIncomingTransition);
+    TValidationResult.Failed(SErrorNoIncomingTransition);
 end;
 
 { TToken }
@@ -484,12 +476,13 @@ begin
   end;
 end;
 
-procedure TTransition.Validate(Context: TValidationContext);
+function TTransition.Validate(Context: IValidationContext): IValidationResult;
 begin
+  Result := TValidationResult.Create;
   if Source = nil then
-    Context.AddError(Self, SErrorNoSourceNode);
+    Result.Errors.Add(TValidationError.Create(SErrorNoSourceNode));
   if Target = nil then
-    Context.AddError(Self, SErrorNoTargetNode);
+    Result.Errors.Add(TValidationError.Create(SErrorNoTargetNode));
 end;
 
 { TExecutionContext }
@@ -615,33 +608,6 @@ begin
   else
     // set global variable
     FVariables.SaveVariable(Name, Value);
-end;
-
-{ TValidationResult }
-
-constructor TValidationResult.Create(AElement: TFlowElement; AError: boolean; const AMessage: string);
-begin
-  FElement := AElement;
-  FError := AError;
-  FMessage := AMessage;
-end;
-
-{ TValidationContext }
-
-procedure TValidationContext.AddError(AElement: TFlowElement; const AMessage: string);
-begin
-  FResults.Add(TValidationResult.Create(AElement, true, AMessage));
-end;
-
-constructor TValidationContext.Create;
-begin
-  FResults := TObjectList<TValidationResult>.Create;
-end;
-
-destructor TValidationContext.Destroy;
-begin
-  FResults.Free;
-  inherited;
 end;
 
 { TVariable }

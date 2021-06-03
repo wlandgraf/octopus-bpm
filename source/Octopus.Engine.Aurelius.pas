@@ -245,11 +245,11 @@ end;
 procedure TAureliusOctopusEngine.ValidateDefinition(const ProcessJson: string);
 var
   Process: TWorkflowProcess;
-  Validator: TProcessValidator;
+  Validator: TWorkflowProcessValidator;
 begin
   Process := TWorkflowDeserializer.ProcessFromJson(ProcessJson);
   try
-    Validator := TProcessValidator.Create;
+    Validator := TWorkflowProcessValidator.Create;
     try
       Validator.Validate(Process);
     finally

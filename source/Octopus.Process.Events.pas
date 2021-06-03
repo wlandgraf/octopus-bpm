@@ -14,12 +14,12 @@ type
   TStartEvent = class (TEvent)
   public
     function IsStart: boolean; override;
-    procedure Validate(Context: TValidationContext); override;
+    function Validate(Context: IValidationContext): IValidationResult; override;
   end;
 
   TEndEvent = class(TEvent)
   public
-    procedure Validate(Context: TValidationContext); override;
+    function Validate(Context: IValidationContext): IValidationResult; override;
   end;
 
 implementation
@@ -29,12 +29,13 @@ uses
 
 { TEndEvent }
 
-procedure TEndEvent.Validate(Context: TValidationContext);
+function TEndEvent.Validate(Context: IValidationContext): IValidationResult;
 begin
+  Result := TValidationResult.Create;
   if IncomingTransitions.Count = 0 then
-    Context.AddError(Self, SErrorNoIncomingTransition);
+    Result.Errors.Add(TValidationError.Create(SErrorNoIncomingTransition));
   if OutgoingTransitions.Count > 0 then
-    Context.AddError(Self, SErrorEndEventOutgoing);
+    Result.Errors.Add(TValidationError.Create(SErrorEndEventOutgoing));
 end;
 
 { TStartEvent }
@@ -44,12 +45,13 @@ begin
   result := true;
 end;
 
-procedure TStartEvent.Validate(Context: TValidationContext);
+function TStartEvent.Validate(Context: IValidationContext): IValidationResult;
 begin
+  Result := TValidationResult.Create;
   if IncomingTransitions.Count > 0 then
-    Context.AddError(Self, SErrorStartEventIncoming);
+    Result.Errors.Add(TValidationError.Create(SErrorStartEventIncoming));
   if OutgoingTransitions.Count = 0 then
-    Context.AddError(Self, SErrorNoOutgoingTransition);
+    Result.Errors.Add(TValidationError.Create(SErrorNoOutgoingTransition));
 end;
 
 { TEvent }

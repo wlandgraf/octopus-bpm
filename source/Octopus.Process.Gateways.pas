@@ -19,7 +19,7 @@ type
     function FindUpstreamToken(ATransition: TTransition; ATokens: TList<TToken>): boolean;
   public
     procedure Execute(Context: TExecutionContext); override;
-    procedure Validate(Context: TValidationContext); override;
+    function Validate(Context: IValidationContext): IValidationResult; override;
   end;
 
   TExclusiveGateway = class(TGateway)
@@ -126,12 +126,13 @@ begin
   end;
 end;
 
-procedure TGateway.Validate(Context: TValidationContext);
+function TGateway.Validate(Context: IValidationContext): IValidationResult;
 begin
+  Result := TValidationResult.Create;
   if IncomingTransitions.Count = 0 then
-    Context.AddError(Self, SErrorNoIncomingTransition);
+    Result.Errors.Add(TValidationError.Create(SErrorNoIncomingTransition));
   if OutgoingTransitions.Count = 0 then
-    Context.AddError(Self, SErrorNoOutgoingTransition);
+    Result.Errors.Add(TValidationError.Create(SErrorNoOutgoingTransition));
 end;
 
 { TExclusiveGateway }
