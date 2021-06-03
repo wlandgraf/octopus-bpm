@@ -33,6 +33,7 @@ resourcestring
   SErrorTokenReprocessed            = 'Internal error: token "%s" reprocessed';
   SErrorInstanceLockFailed          = 'Cannot lock process instance "%s"';
   SErrorInstanceLockFailedException = 'Cannot lock process instance "%s" (%s: %s)';
+  SErrorElementHasNoId              = 'Element has no id';
 
   STokenValidationParentRequired    = 'Parent is required if token belongs to a transition';
 

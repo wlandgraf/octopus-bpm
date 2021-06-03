@@ -3,7 +3,7 @@ unit Octopus.Process.Validation;
 interface
 
 uses
-  Generics.Collections,
+  Generics.Collections, Rtti, SysUtils,
   Octopus.Process,
   Aurelius.Validation,
   Aurelius.Validation.Interfaces;
@@ -50,32 +50,51 @@ type
   TWorkflowProcessValidator = class
   strict private
     FProcess: TWorkflowProcess;
-//    FNodeValidators: TList<IValidator>;
-    FResults: TList<IValidationResult>;
+    FResults: TList<IProcessValidationResult>;
     FValidators: TList<IValidator>;
     procedure AddBuiltinValidators;
   protected
     property Process: TWorkflowProcess read FProcess;
-//    property NodeValidators: TList<IValidator> read FNodeValidators;
     property Validators: TList<IValidator> read FValidators;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Validate(AProcess: TWorkflowProcess);
-    property Results: TList<IValidationResult> read FResults;
+    property Results: TList<IProcessValidationResult> read FResults;
   end;
 
-  TProcessValidator = class(TValidator<TWorkflowProcess>)
+  TSelectiveValidator<T> = class(TValidator)
+  public
+    function Validate(const Value: TValue; Context: IValidationContext): IValidationResult; override;
+    function DoValidate(const Value: T; Context: IValidationContext): IValidationResult; virtual; abstract;
+  end;
+
+  TProcessValidator = class(TSelectiveValidator<TWorkflowProcess>)
   end;
 
   TStartNodeValidator = class(TProcessValidator)
     function DoValidate(const Process: TWorkflowProcess; Context: IValidationContext): IValidationResult; override;
   end;
 
+  TIdRequiredValidator = class(TSelectiveValidator<TFlowElement>)
+  public
+    function DoValidate(const Value: TFlowElement; Context: IValidationContext): IValidationResult; override;
+  end;
+
 implementation
 
 uses
   Octopus.Resources;
+
+{ TElementValidator<T> }
+
+function TSelectiveValidator<T>.Validate(const Value: TValue; Context: IValidationContext): IValidationResult;
+begin
+  if Value.IsType<T> then
+    Result := DoValidate(Value.AsType<T>, Context)
+  else
+    Result := TValidationResult.Success;
+end;
 
 { TProcessValidationResult }
 
@@ -124,13 +143,14 @@ end;
 procedure TWorkflowProcessValidator.AddBuiltinValidators;
 begin
   Validators.Add(TStartNodeValidator.Create);
+  Validators.Add(TIdRequiredValidator.Create);
 end;
 
 constructor TWorkflowProcessValidator.Create;
 begin
   inherited Create;
   FValidators := TList<IValidator>.Create;
-  FResults := TList<IValidationResult>.Create;
+  FResults := TList<IProcessValidationResult>.Create;
   AddBuiltinValidators;
 end;
 
@@ -162,10 +182,19 @@ begin
   Context := TProcessValidationContext.Create(Process);
 
   for Node in Process.Nodes do
+  begin
     ProcessResult(Node.Validate(Context), Node);
+    for Validator in Validators do
+      ProcessResult(Validator.Validate(Node, Context), Node);
+  end;
+
 
   for Transition in Process.Transitions do
+  begin
     ProcessResult(Transition.Validate(Context), Transition);
+    for Validator in Validators do
+      ProcessResult(Validator.Validate(Transition, Context), Transition);
+  end;
 
   for Validator in Validators do
     ProcessResult(Validator.Validate(Process, Context), nil);
@@ -192,6 +221,16 @@ begin
   end;
   if not Assigned(start) then
     Result := TValidationResult.Failed(SErrorNoStartEvent);
+end;
+
+
+{ TNameRequiredValidator }
+
+function TIdRequiredValidator.DoValidate(const Value: TFlowElement; Context: IValidationContext): IValidationResult;
+begin
+  if Trim(Value.Id) = '' then
+    Result := TValidationResult.Failed(SErrorElementHasNoId);
+
 end;
 
 end.
