@@ -5,6 +5,7 @@ interface
 uses
   Generics.Collections, Rtti, SysUtils,
   Octopus.Process,
+  Octopus.Exceptions,
   Aurelius.Validation,
   Aurelius.Validation.Interfaces;
 
@@ -81,10 +82,39 @@ type
     function DoValidate(const Value: TFlowElement; Context: IValidationContext): IValidationResult; override;
   end;
 
+  EProcessValidationException = class(EOctopusException)
+  strict private
+    FResults: TList<IProcessValidationResult>;
+  public
+    constructor Create(AResults: TList<IProcessValidationResult>);
+    destructor Destroy; override;
+    property Results: TList<IProcessValidationResult> read FResults;
+  end;
+
 implementation
 
 uses
   Octopus.Resources;
+
+{ EProcessValidationException }
+
+constructor EProcessValidationException.Create(AResults: TList<IProcessValidationResult>);
+var
+  Msg: string;
+begin
+  FResults := TList<IProcessValidationResult>.Create;
+  FResults.AddRange(AResults);
+  Msg := SErrorProcessValidationFailed;
+  if (FResults.Count = 1) and (FResults[0].Errors.Count = 1) then
+    Msg := Msg + ': ' + FResults[0].Errors[0].ErrorMessage;
+  inherited Create(Msg);
+end;
+
+destructor EProcessValidationException.Destroy;
+begin
+  FResults.Free;
+  inherited;
+end;
 
 { TElementValidator<T> }
 

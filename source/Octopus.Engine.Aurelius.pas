@@ -252,6 +252,8 @@ begin
     Validator := TWorkflowProcessValidator.Create;
     try
       Validator.Validate(Process);
+      if Validator.Results.Count > 0 then
+        raise EProcessValidationException.Create(Validator.Results);
     finally
       Validator.Free;
     end;
