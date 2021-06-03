@@ -1,5 +1,7 @@
 unit Octopus.Process.Builder;
 
+{$I Octopus.inc}
+
 interface
 
 uses
@@ -21,6 +23,7 @@ type
     function GetCurrentNode: TFlowNode;
     function GetCurrentTransition: TTransition;
     function GetRoot: TProcessBuilder;
+    procedure AutoId(Element: TFlowElement);
   protected
     function BuildItem(AElement: TFlowElement; Linked: boolean): TProcessBuilder;
     property CurrentElement: TFlowElement read FElement;
@@ -79,12 +82,13 @@ function TProcessBuilder.AddNode(Node: TFlowNode): TFlowNode;
 begin
   FProcess.Nodes.Add(Node);
   result := Node;
+  AutoId(Node);
 end;
 
 function TProcessBuilder.AddEndEvent: TEndEvent;
 begin
   result := TEndEvent.Create;
-  FProcess.Nodes.Add(result);
+  AddNode(result);
 end;
 
 function TProcessBuilder.AddTransition(Source, Target: TFlowNode): TTransition;
@@ -93,6 +97,7 @@ begin
   result.Source := Source;
   result.Target := Target;
   FProcess.Transitions.Add(result);
+  AutoId(result);
 end;
 
 function TProcessBuilder.AddVariable(const AName: string; ADefaultValue: TValue): TVariable;
@@ -101,6 +106,11 @@ begin
   result.Name := AName;
   result.Value := ADefaultValue;
   FProcess.Variables.Add(result);
+end;
+
+procedure TProcessBuilder.AutoId(Element: TFlowElement);
+begin
+  FProcess.AutoId(Element);
 end;
 
 function TProcessBuilder.BuildItem(AElement: TFlowElement; Linked: boolean): TProcessBuilder;
@@ -267,7 +277,7 @@ end;
 function TProcessBuilder.AddStartEvent: TStartEvent;
 begin
   result := TStartEvent.Create;
-  FProcess.Nodes.Add(result);
+  AddNode(result);
 end;
 
 end.

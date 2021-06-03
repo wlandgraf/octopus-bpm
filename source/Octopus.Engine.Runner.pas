@@ -132,7 +132,6 @@ end;
 
 procedure TWorkflowRunner.PrepareExecution;
 var
-  node: TFlowNode;
   token: TToken;
   tokens: TList<TToken>;
 begin

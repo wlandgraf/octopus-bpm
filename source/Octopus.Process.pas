@@ -38,6 +38,14 @@ type
   IProcessInstanceData = interface;
   IVariablesPersistence = interface;
 
+  TFlowElement = class
+  strict private
+    FId: string;
+  public
+    [Persistent]
+    property Id: string read FId write FId;
+  end;
+
   TWorkflowProcess = class
   private
     [Persistent]
@@ -50,6 +58,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure InitInstance(Instance: IProcessInstanceData; Variables: IVariablesPersistence);
+    procedure AutoId(Element: TFlowElement);
     procedure Prepare;
     function StartNode: TFlowNode;
     function FindNode(const AId: string): TFlowNode;
@@ -59,15 +68,6 @@ type
     property Nodes: TObjectList<TFlowNode> read FNodes;
     property Transitions: TObjectList<TTransition> read FTransitions;
     property Variables: TObjectList<TVariable> read FVariables;
-  end;
-
-  TFlowElement = class
-  private
-    FId: string;
-  public
-    constructor Create; virtual;
-    [Persistent]
-    property Id: string read FId write FId;
   end;
 
   IVariable = interface
@@ -111,7 +111,7 @@ type
     procedure FlowTokens(Context: TExecutionContext);
     procedure DeactivateTokens(Context: TExecutionContext);
   public
-    constructor Create; override;
+    constructor Create;
     destructor Destroy; override;
     procedure Execute(Context: TExecutionContext); virtual; abstract;
     function Validate(Context: IValidationContext): IValidationResult; virtual;
@@ -263,6 +263,23 @@ uses
   Octopus.Resources;
 
 { TWorkflowProcess }
+
+procedure TWorkflowProcess.AutoId(Element: TFlowElement);
+var
+  Candidate: string;
+  Index: Integer;
+begin
+  if Element.Id <> '' then Exit;
+
+  Index := 0;
+  repeat
+    Inc(Index);
+    Candidate := Format('%s%d', [Element.ClassName, Index]);
+    if Candidate[1] = 'T' then
+      Delete(Candidate, 1, 1);
+  until (FindNode(Candidate) = nil) and (FindTransition(Candidate) = nil);
+  Element.Id := Candidate;
+end;
 
 constructor TWorkflowProcess.Create;
 begin
@@ -647,14 +664,6 @@ begin
   FValue := Value;
   if (FDataType = nil) and not FValue.IsEmpty then
     FDataType := TOctopusDataTypes.Default.Get(Value.TypeInfo);
-end;
-
-{ TFlowElement }
-
-constructor TFlowElement.Create;
-begin
-  inherited Create;
-  FId := TUtils.NewId;
 end;
 
 { Persistent }
