@@ -29,7 +29,7 @@ type
     constructor Create(APool: IDBConnectionPool);
   end;
 
-  TAureliusInstanceData = class(TAureliusPersistence, IProcessInstanceData)
+  TAureliusInstanceData = class(TAureliusPersistence, IProcessInstanceData, ITokensPersistence)
   private
     FInstanceId: string;
     procedure SaveToken(Token: TToken);

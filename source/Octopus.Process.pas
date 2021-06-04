@@ -53,6 +53,17 @@ type
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
 
+  ITokensPersistence = interface
+  ['{5FA154EA-E663-4990-BF02-2C891CF6182D}']
+    function GetInstanceId: string;
+    procedure AddToken(Node: TFlowNode); overload;
+    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
+    function LoadTokens: TList<TToken>; overload;
+    procedure ActivateToken(Token: TToken);
+    procedure RemoveToken(Token: TToken);
+    procedure DeactivateToken(Token: TToken);
+  end;
+
   TFlowElement = class
   strict private
     FId: string;
@@ -222,6 +233,7 @@ type
     FTokens: TList<TToken>;
     FInstance: IProcessInstanceData;
     FVariables: IVariablesPersistence;
+    FContextTokens: ITokensPersistence;
     FProcess: TWorkflowProcess;
     FNode: TFlowNode;
     FStorage: IStorage;
@@ -231,7 +243,8 @@ type
     property Tokens: TList<TToken> read FTokens;
   public
     constructor Create(ATokens: TList<TToken>; AInstance: IProcessInstanceData;
-      AVariables: IVariablesPersistence; AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
+      AVariables: IVariablesPersistence; AContextTokens: ITokensPersistence;
+      AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
 
     function GetVariable(Token: TToken; const Name: string): TValue;
@@ -513,12 +526,14 @@ end;
 
 constructor TExecutionContext.Create(ATokens: TList<TToken>;
   AInstance: IProcessInstanceData; AVariables: IVariablesPersistence;
-  AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
+  AContextTokens: ITokensPersistence; AProcess: TWorkflowProcess; ANode: TFlowNode;
+  AStorage: IStorage);
 begin
   inherited Create;
-  FTokens := ATokens;
+  FContextTokens := AContextTokens;
   FInstance := AInstance;
   FVariables := AVariables;
+  FTokens := ATokens;
   FProcess := AProcess;
   FNode := ANode;
   FStorage := AStorage;

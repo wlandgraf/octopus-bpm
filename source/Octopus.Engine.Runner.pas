@@ -152,8 +152,10 @@ procedure TWorkflowRunner.ProcessNode(Tokens: TList<TToken>; Node: TFlowNode);
 var
   context: TExecutionContext;
   trans: IDBTransaction;
+  tokenspersistence: ITokensPersistence;
 begin
-  context := TExecutionContext.Create(Tokens, FInstance, FVariables, FProcess, Node, FConnection);
+  Assert(Supports(FInstance, ITokensPersistence, tokenspersistence));
+  context := TExecutionContext.Create(Tokens, FInstance, FVariables, tokenspersistence, FProcess, Node, FConnection);
   try
     trans := FConnection.BeginTransaction;
     try
