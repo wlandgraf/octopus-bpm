@@ -36,7 +36,22 @@ type
   end;
 
   IProcessInstanceData = interface;
-  IVariablesPersistence = interface;
+
+  IVariable = interface
+  ['{F73A4AB4-A35B-4076-ADCF-C3295B3369D6}']
+    function GetName: string;
+    function GetValue: TValue;
+    function GetTokenId: string;
+    property Name: string read GetName;
+    property Value: TValue read GetValue;
+    property TokenId: string read GetTokenId;
+  end;
+
+  IVariablesPersistence = interface
+  ['{E5AB071A-E3F5-48F6-8012-03C335618183}']
+    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
+    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
+  end;
 
   TFlowElement = class
   strict private
@@ -70,16 +85,6 @@ type
     property Variables: TObjectList<TVariable> read FVariables;
   end;
 
-  IVariable = interface
-  ['{F73A4AB4-A35B-4076-ADCF-C3295B3369D6}']
-    function GetName: string;
-    function GetValue: TValue;
-    function GetTokenId: string;
-    property Name: string read GetName;
-    property Value: TValue read GetValue;
-    property TokenId: string read GetTokenId;
-  end;
-
   IProcessInstanceData = interface
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     function GetInstanceId: string;
@@ -93,12 +98,6 @@ type
     procedure Unlock;
     procedure Finish;
     procedure SetDueDate(DueDate: TDateTime);
-  end;
-
-  IVariablesPersistence = interface
-  ['{E5AB071A-E3F5-48F6-8012-03C335618183}']
-    function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
-    procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
 
   TFlowNode = class abstract(TFlowElement)
