@@ -160,7 +160,8 @@ type
   [Model(OctopusModel)]
   [Table('OCT_VARIABLE')]
   [Sequence('SEQ_VARIABLE')]
-  [DBIndex('idx_oct_variable_name', 'name')]
+//  [DBIndex('idx_oct_variable_name', 'name')]
+  [DBIndex('idx_oct_variable_instance_id', 'proc_instance_id')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TVariableEntity = class
   private
