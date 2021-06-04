@@ -43,6 +43,8 @@ type
   public
     constructor Create(ARuntime: IOctopusInstanceService);
     destructor Destroy; override;
+  public
+    { IVariablesPersistence }
     function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
