@@ -40,7 +40,10 @@ end;
 
 procedure TContextTokens.DeactivateToken(Token: TToken);
 begin
+  if Token.Status = TTokenStatus.Waiting then Exit;
+
   FRuntime.DeactivateToken(Token);
+  Token.Status := TTokenStatus.Waiting;
 end;
 
 destructor TContextTokens.Destroy;
@@ -51,42 +54,60 @@ end;
 
 procedure TContextTokens.ActivateToken(Token: TToken);
 begin
+  if Token.Status = TTokenStatus.Active then Exit;
+
   FRuntime.ActivateToken(Token);
+  Token.Status := TTokenStatus.Active;
 end;
 
 procedure TContextTokens.AddToken(Transition: TTransition; const ParentId: string);
+var
+  Token: TToken;
+  TokenId: string;
 begin
   FRuntime.AddToken(Transition, ParentId);
+
+  Token := TToken.Create;
+  FTokens.Add(Token);
+  Token.Id := TokenId;
+  Token.TransitionId := Transition.Id;
+  Token.NodeId := Transition.Target.Id;
+  Token.ParentId := ParentId;
 end;
 
 procedure TContextTokens.AddToken(Node: TFlowNode);
+var
+  Token: TToken;
+  TokenId: string;
 begin
   FRuntime.AddToken(Node);
+
+  Token := TToken.Create;
+  FTokens.Add(Token);
+  Token.Id := TokenId;
+  Token.NodeId := Node.Id;
 end;
 
 function TContextTokens.LoadTokens: TList<TToken>;
 begin
-  Result := FRuntime.LoadTokens;
+  CheckLoaded;
+  Result := FTokens;
 end;
 
 procedure TContextTokens.RemoveToken(Token: TToken);
 begin
+  if Token.Status = TTokenStatus.Finished then Exit;
+
   FRuntime.RemoveToken(Token);
+  Token.Status := TTokenStatus.Finished;
 end;
 
 procedure TContextTokens.CheckLoaded;
-//var
-//  LocalVar: IVariable;
-//  MutableVar: IMutableVariable;
 begin
   if FLoaded then Exit;
 
-  FTokens.Clear;
-//  for LocalVar in FRuntime.LoadTokens do
-  begin
-//    MutableVar := TMutableVariable.Create(LocalVar.Name, LocalVar.TokenId, LocalVar.Value);
-//    FTokens.Add(MutableVar);
-  end;
+  FTokens.Free;
+  FTokens := FRuntime.LoadTokens;
   FLoaded := True;
 end;
 
