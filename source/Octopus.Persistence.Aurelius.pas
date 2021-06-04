@@ -63,6 +63,7 @@ type
     constructor Create(Pool: IDBConnectionPool; const InstanceId: string);
   public
     { IOctopusInstanceService methods }
+    function LoadVariables: TArray<IVariable>;
     function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
@@ -805,6 +806,30 @@ begin
       Result := TAureliusVariable.Create(varEnt)
     else
       Result := nil
+  finally
+    Manager.Free;
+  end;
+end;
+
+function TAureliusInstanceService.LoadVariables: TArray<IVariable>;
+var
+  Manager: TObjectManager;
+  List: TList<TVariableEntity>;
+  I: Integer;
+begin
+  Manager := CreateManager;
+  try
+    List := Manager.Find<TVariableEntity>
+      .CreateAlias('Instance', 'i')
+      .Where(Linq['i.Id'] = FInstanceId)
+      .List;
+    try
+      SetLength(Result, List.Count);
+      for I := 0 to List.Count - 1 do
+        Result[I] := TAureliusVariable.Create(List[I]);
+    finally
+      List.Free;
+    end;
   finally
     Manager.Free;
   end;

@@ -69,6 +69,7 @@ implementation
 
 uses
   Octopus.Json.Deserializer,
+  Octopus.Engine.Variables,
   Octopus.Process.Validation,
   Aurelius.Drivers.Base;
 
@@ -201,6 +202,7 @@ var
   ProcessId: string;
   Instance: IProcessInstanceData;
   VariablesPersistence: IVariablesPersistence;
+  Runtime: IOctopusInstanceService;
   SingletonPool: IDBConnectionPool;
 begin
   SingletonPool := CreateSingletonPool;
@@ -208,7 +210,8 @@ begin
   Process := CreateRepository(SingletonPool).GetDefinition(ProcessId);
   try
     Instance := TAureliusInstanceData.Create(SingletonPool, InstanceId);
-    VariablesPersistence := TAureliusInstanceService.Create(SingletonPool, InstanceId);
+    Runtime := TAureliusInstanceService.Create(SingletonPool, InstanceId);
+    VariablesPersistence := TContextVariables.Create(Runtime);
     RunInstance(Process, Instance, VariablesPersistence, SingletonPool.GetConnection);
   finally
     Process.Free;

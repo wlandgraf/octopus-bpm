@@ -64,6 +64,7 @@ type
 
   IOctopusInstanceService = interface
   ['{5155BBBF-BB17-46BC-823A-2193D5209259}']
+    function LoadVariables: TArray<IVariable>;
     function LoadVariable(const Name: string; const TokenId: string = ''): IVariable;
     procedure SaveVariable(const Name: string; const Value: TValue; const TokenId: string = '');
   end;
