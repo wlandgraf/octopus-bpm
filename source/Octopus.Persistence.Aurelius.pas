@@ -608,7 +608,7 @@ begin
   Manager := CreateManager;
   try
     Definition := Manager.Find<TProcessDefinitionEntity>
-      .Where(Linq['Key'].ILike(Key))
+      .Where(Linq['Key'] = LowerCase(Key))
       .OrderBy('Version', False)
       .Take(1)
       .UniqueResult;
@@ -632,7 +632,7 @@ begin
   try
     VersionResult := Manager.Find<TProcessDefinitionEntity>
       .Select(Linq['Version'].Max)
-      .Where(Linq['Key'].ILike(Key))
+      .Where(Linq['Key'] = LowerCase(Key))
       .UniqueValue;
     try
       if VarIsNull(VersionResult.Values[0]) then
@@ -645,7 +645,7 @@ begin
 
     Definition := TProcessDefinitionEntity.Create;
     Manager.AddOwnership(Definition);
-    Definition.Key := Key;
+    Definition.Key := LowerCase(Key);
     Definition.Name := Name;
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
@@ -792,7 +792,7 @@ begin
       .CreateAlias('Instance', 'i')
       .CreateAlias('Token', 't')
       .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'].ILike(Name)));
+         and (Linq['Name'] = LowerCase(Name)));
 
     if TokenId <> '' then
       Criteria.Add(Linq['t.Id'] = tokenId)
@@ -823,7 +823,7 @@ begin
       .CreateAlias('Instance', 'i')
       .CreateAlias('Token', 't')
       .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'].ILike(Name)));
+         and (Linq['Name'] = LowerCase(Name)));
 
     if TokenId <> '' then
       Criteria.Add(Linq['t.Id'] = tokenId)
@@ -837,7 +837,7 @@ begin
       varEnt := TVariableEntity.Create;
       Manager.AddOwnership(varEnt);
       varEnt.Instance := GetInstanceEntity(Manager);
-      varEnt.Name := Name;
+      varEnt.Name := LowerCase(Name);
       if TokenId <> '' then
       begin
         tokenEnt := Manager.Find<TTokenEntity>(TokenId);
