@@ -56,7 +56,7 @@ end;
 
 procedure TContextTokens.AddToken(Transition: TTransition; const ParentId: string);
 begin
-  FRuntime.ActivateToken(Transition, ParentId);
+  FRuntime.AddToken(Transition, ParentId);
 end;
 
 procedure TContextTokens.AddToken(Node: TFlowNode);

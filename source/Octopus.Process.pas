@@ -55,7 +55,6 @@ type
 
   ITokensPersistence = interface
   ['{5FA154EA-E663-4990-BF02-2C891CF6182D}']
-    function GetInstanceId: string;
     procedure AddToken(Node: TFlowNode); overload;
     procedure AddToken(Transition: TTransition; const ParentId: string); overload;
     function LoadTokens: TList<TToken>; overload;
