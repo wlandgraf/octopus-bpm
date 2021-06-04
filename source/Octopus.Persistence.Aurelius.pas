@@ -882,7 +882,7 @@ begin
   if FInstanceId <> '' then
     Criteria.Add(Linq['Id'] = FInstanceId);
   if FReference <> '' then
-    Criteria.Add(Linq['Reference'].ILike(FReference));
+    Criteria.Add(Linq['Reference'] = FReference);
   while FVariables.Count > 0 do
     Criteria.Add(FVariables.Extract(FVariables[0]));
 end;

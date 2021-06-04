@@ -68,6 +68,7 @@ type
   [Model(OctopusModel)]
   [Table('OCT_PROC_INSTANCE')]
   [Sequence('SEQ_PROC_INSTANCE')]
+  [DBIndex('idx_oct_proc_instance_status', 'status')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TProcessInstanceEntity = class
   private
@@ -109,6 +110,7 @@ type
   [Model(OctopusModel)]
   [Table('OCT_TOKEN')]
   [Sequence('SEQ_TOKEN')]
+  [DBIndex('idx_oct_token_proc_instance_id', 'proc_instance_id')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TTokenEntity = class
   private
@@ -158,6 +160,7 @@ type
   [Model(OctopusModel)]
   [Table('OCT_VARIABLE')]
   [Sequence('SEQ_VARIABLE')]
+  [DBIndex('idx_oct_variable_name', 'name')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TVariableEntity = class
   private
