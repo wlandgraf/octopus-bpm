@@ -55,8 +55,8 @@ type
 
   ITokensPersistence = interface
   ['{5FA154EA-E663-4990-BF02-2C891CF6182D}']
-    procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
+    function AddToken(Node: TFlowNode): string; overload;
+    function AddToken(Transition: TTransition; const ParentId: string): string; overload;
     function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -98,8 +98,8 @@ type
   IProcessInstanceData = interface
   ['{09517276-EF8B-4CCA-A1F2-85F6F2BFE521}']
     function GetInstanceId: string;
-    procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
+    function AddToken(Node: TFlowNode): string; overload;
+    function AddToken(Transition: TTransition; const ParentId: string): string; overload;
     function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -230,7 +230,6 @@ type
   TExecutionContext = class
   strict private
     FTokens: TList<TToken>;
-    FInstance: IProcessInstanceData;
     FVariables: IVariablesPersistence;
     FContextTokens: ITokensPersistence;
     FProcess: TWorkflowProcess;
@@ -241,8 +240,7 @@ type
   protected
     property Tokens: TList<TToken> read FTokens;
   public
-    constructor Create(ATokens: TList<TToken>; AInstance: IProcessInstanceData;
-      AVariables: IVariablesPersistence; AContextTokens: ITokensPersistence;
+    constructor Create(AVariables: IVariablesPersistence; AContextTokens: ITokensPersistence;
       AProcess: TWorkflowProcess; ANode: TFlowNode; AStorage: IStorage);
     function GetTokens(Predicate: TTokenPredicateFunc): TList<TToken>;
 
@@ -518,21 +516,19 @@ end;
 procedure TExecutionContext.AddToken(Transition: TTransition; Token: TToken);
 begin
   if Token <> nil then
-    FInstance.AddToken(Transition, Token.Id)
+    FContextTokens.AddToken(Transition, Token.Id)
   else
-    FInstance.AddToken(Transition, '');
+    FContextTokens.AddToken(Transition, '');
 end;
 
-constructor TExecutionContext.Create(ATokens: TList<TToken>;
-  AInstance: IProcessInstanceData; AVariables: IVariablesPersistence;
+constructor TExecutionContext.Create(AVariables: IVariablesPersistence;
   AContextTokens: ITokensPersistence; AProcess: TWorkflowProcess; ANode: TFlowNode;
   AStorage: IStorage);
 begin
   inherited Create;
   FContextTokens := AContextTokens;
-  FInstance := AInstance;
   FVariables := AVariables;
-  FTokens := ATokens;
+  FTokens := FContextTokens.LoadTokens;;
   FProcess := AProcess;
   FNode := ANode;
   FStorage := AStorage;
@@ -540,7 +536,7 @@ end;
 
 procedure TExecutionContext.DeactivateToken(Token: TToken);
 begin
-  FInstance.DeactivateToken(Token);
+  FContextTokens.DeactivateToken(Token);
 end;
 
 function TExecutionContext.FindToken(const Id: string): TToken;
@@ -613,7 +609,7 @@ end;
 
 procedure TExecutionContext.RemoveToken(Token: TToken);
 begin
-  FInstance.RemoveToken(Token);
+  FContextTokens.RemoveToken(Token);
 end;
 
 procedure TExecutionContext.SetLocalVariable(Token: TToken; const Name: string;

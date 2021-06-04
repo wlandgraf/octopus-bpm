@@ -19,8 +19,8 @@ type
     destructor Destroy; override;
   public
     { ITokensPersistence }
-    procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
+    function AddToken(Node: TFlowNode): string; overload;
+    function AddToken(Transition: TTransition; const ParentId: string): string; overload;
     function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -60,31 +60,29 @@ begin
   Token.Status := TTokenStatus.Active;
 end;
 
-procedure TContextTokens.AddToken(Transition: TTransition; const ParentId: string);
+function TContextTokens.AddToken(Transition: TTransition; const ParentId: string): string;
 var
   Token: TToken;
-  TokenId: string;
 begin
-  FRuntime.AddToken(Transition, ParentId);
+  Result := FRuntime.AddToken(Transition, ParentId);
 
   Token := TToken.Create;
   FTokens.Add(Token);
-  Token.Id := TokenId;
+  Token.Id := Result;
   Token.TransitionId := Transition.Id;
   Token.NodeId := Transition.Target.Id;
   Token.ParentId := ParentId;
 end;
 
-procedure TContextTokens.AddToken(Node: TFlowNode);
+function TContextTokens.AddToken(Node: TFlowNode): string;
 var
   Token: TToken;
-  TokenId: string;
 begin
-  FRuntime.AddToken(Node);
+  Result := FRuntime.AddToken(Node);
 
   Token := TToken.Create;
   FTokens.Add(Token);
-  Token.Id := TokenId;
+  Token.Id := Result;
   Token.NodeId := Node.Id;
 end;
 

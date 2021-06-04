@@ -41,8 +41,8 @@ type
   public
     { IProcessInstanceData methods }
     function GetInstanceId: string;
-    procedure AddToken(Node: TFlowNode); overload;
-    procedure AddToken(Transition: TTransition; const ParentId: string); overload;
+    function AddToken(Node: TFlowNode): string; overload;
+    function AddToken(Transition: TTransition; const ParentId: string): string; overload;
     function LoadTokens: TList<TToken>; overload;
     procedure ActivateToken(Token: TToken);
     procedure RemoveToken(Token: TToken);
@@ -206,7 +206,7 @@ begin
   end;
 end;
 
-procedure TAureliusInstanceData.AddToken(Transition: TTransition; const ParentId: string);
+function TAureliusInstanceData.AddToken(Transition: TTransition; const ParentId: string): string;
 var
   token: TToken;
 begin
@@ -217,12 +217,13 @@ begin
     token.NodeId := Transition.Target.Id;
     token.ParentId := ParentId;
     SaveToken(token);
+    Result := token.Id;
   finally
     token.Free;
   end;
 end;
 
-procedure TAureliusInstanceData.AddToken(Node: TFlowNode);
+function TAureliusInstanceData.AddToken(Node: TFlowNode): string;
 var
   token: TToken;
 begin
@@ -231,6 +232,7 @@ begin
     token.NodeId := Node.Id;
   //  token.ProducerId := ProducerId;
     SaveToken(token);
+    Result := token.Id;
   finally
     token.Free;
   end;
@@ -398,6 +400,7 @@ begin
     tokenEnt.Instance := GetInstanceEntity(Manager);
     tokenEnt.Parent := Manager.Find<TTokenEntity>(Token.ParentId);
     Manager.Save(tokenEnt);
+    Token.Id := tokenEnt.Id;
   finally
     Manager.Free;
   end;

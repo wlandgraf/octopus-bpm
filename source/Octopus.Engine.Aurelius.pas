@@ -183,7 +183,8 @@ begin
 end;
 
 procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;
-  Instance: IProcessInstanceData; Variables: IVariablesPersistence; Connection: IDBConnection);
+  Instance: IProcessInstanceData; Variables: IVariablesPersistence;
+  Connection: IDBConnection);
 var
   runner: TWorkflowRunner;
 begin
