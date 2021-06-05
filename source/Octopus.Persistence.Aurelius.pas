@@ -59,7 +59,6 @@ type
   TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService)
   private
     FInstanceId: string;
-    Manager: TObjectManager;
     procedure FillVariable(InstanceVar: TVariableEntity; Value: TValue);
     function GetInstanceEntity(Manager: TObjectManager): TProcessInstanceEntity;
   public
@@ -750,53 +749,41 @@ function TAureliusInstanceService.LoadVariable(const Name,
 var
   varEnt: TVariableEntity;
   Criteria: TCriteria<TVariableEntity>;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    Criteria := Manager.Find<TVariableEntity>
-      .CreateAlias('Instance', 'i')
-      .CreateAlias('Token', 't')
-      .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'] = LowerCase(Name)));
+  Criteria := Manager.Find<TVariableEntity>
+    .CreateAlias('Instance', 'i')
+    .CreateAlias('Token', 't')
+    .Where((Linq['i.Id'] = FInstanceId)
+       and (Linq['Name'] = LowerCase(Name)));
 
-    if TokenId <> '' then
-      Criteria.Add(Linq['t.Id'] = tokenId)
-    else
-      Criteria.Add(Linq['t.Id'].IsNull);
+  if TokenId <> '' then
+    Criteria.Add(Linq['t.Id'] = tokenId)
+  else
+    Criteria.Add(Linq['t.Id'].IsNull);
 
-    varEnt := Criteria.UniqueResult;
+  varEnt := Criteria.UniqueResult;
 
-    if varEnt <> nil then
-      Result := TAureliusVariable.Create(varEnt)
-    else
-      Result := nil
-  finally
-    Manager.Free;
-  end;
+  if varEnt <> nil then
+    Result := TAureliusVariable.Create(varEnt)
+  else
+    Result := nil
 end;
 
 function TAureliusInstanceService.LoadVariables: TArray<IVariable>;
 var
-  Manager: TObjectManager;
   List: TList<TVariableEntity>;
   I: Integer;
 begin
-  Manager := CreateManager;
+  List := Manager.Find<TVariableEntity>
+    .CreateAlias('Instance', 'i')
+    .Where(Linq['i.Id'] = FInstanceId)
+    .List;
   try
-    List := Manager.Find<TVariableEntity>
-      .CreateAlias('Instance', 'i')
-      .Where(Linq['i.Id'] = FInstanceId)
-      .List;
-    try
-      SetLength(Result, List.Count);
-      for I := 0 to List.Count - 1 do
-        Result[I] := TAureliusVariable.Create(List[I]);
-    finally
-      List.Free;
-    end;
+    SetLength(Result, List.Count);
+    for I := 0 to List.Count - 1 do
+      Result[I] := TAureliusVariable.Create(List[I]);
   finally
-    Manager.Free;
+    List.Free;
   end;
 end;
 
@@ -807,44 +794,39 @@ var
   varEnt: TVariableEntity;
   Criteria: TCriteria<TVariableEntity>;
 begin
-  Manager := CreateManager;
-  try
-    Criteria := Manager.Find<TVariableEntity>
-      .CreateAlias('Instance', 'i')
-      .CreateAlias('Token', 't')
-      .Where((Linq['i.Id'] = FInstanceId)
-         and (Linq['Name'] = LowerCase(Name)));
+  Criteria := Manager.Find<TVariableEntity>
+    .CreateAlias('Instance', 'i')
+    .CreateAlias('Token', 't')
+    .Where((Linq['i.Id'] = FInstanceId)
+       and (Linq['Name'] = LowerCase(Name)));
 
+  if TokenId <> '' then
+    Criteria.Add(Linq['t.Id'] = tokenId)
+  else
+    Criteria.Add(Linq['t.Id'].IsNull);
+
+  varEnt := Criteria.UniqueResult;
+
+  if varEnt = nil then
+  begin
+    varEnt := TVariableEntity.Create;
+    Manager.AddOwnership(varEnt);
+    varEnt.Instance := GetInstanceEntity(Manager);
+    varEnt.Name := LowerCase(Name);
     if TokenId <> '' then
-      Criteria.Add(Linq['t.Id'] = tokenId)
-    else
-      Criteria.Add(Linq['t.Id'].IsNull);
-
-    varEnt := Criteria.UniqueResult;
-
-    if varEnt = nil then
     begin
-      varEnt := TVariableEntity.Create;
-      Manager.AddOwnership(varEnt);
-      varEnt.Instance := GetInstanceEntity(Manager);
-      varEnt.Name := LowerCase(Name);
-      if TokenId <> '' then
-      begin
-        tokenEnt := Manager.Find<TTokenEntity>(TokenId);
-        if tokenEnt = nil then
-          raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, TokenId]);
-        varEnt.Token := tokenEnt;
-      end;
-      FillVariable(varEnt, Value);
-      Manager.Save(varEnt);
-    end
-    else
-    begin
-      FillVariable(varEnt, Value);
-      Manager.Flush(varEnt);
+      tokenEnt := Manager.Find<TTokenEntity>(TokenId);
+      if tokenEnt = nil then
+        raise EOctopusTokenNotFound.CreateFmt(SErrorSetVariableTokenNotFound, [Name, TokenId]);
+      varEnt.Token := tokenEnt;
     end;
-  finally
-    Manager.Free;
+    FillVariable(varEnt, Value);
+    Manager.Save(varEnt);
+  end
+  else
+  begin
+    FillVariable(varEnt, Value);
+    Manager.Flush(varEnt);
   end;
 end;
 
