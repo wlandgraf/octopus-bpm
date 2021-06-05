@@ -56,7 +56,7 @@ type
     procedure SetDueDate(DueDate: TDateTime);
   end;
 
-  TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService, IVariablesPersistence)
+  TAureliusInstanceService = class(TAureliusPersistence, IOctopusInstanceService)
   private
     FInstanceId: string;
     Manager: TObjectManager;

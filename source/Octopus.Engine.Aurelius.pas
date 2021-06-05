@@ -93,6 +93,7 @@ end;
 function TAureliusOctopusEngine.CreateInstance(const ProcessId,
   Reference: string; Variables: TEnumerable<TVariable>): string;
 var
+  Runtime: IOctopusInstanceService;
   Instance: IProcessInstanceData;
   VariablesPersistence: IVariablesPersistence;
   Process: TWorkflowProcess;
@@ -106,8 +107,9 @@ begin
     Process := CreateRepository(SingletonPool).GetDefinition(ProcessId);
     try
       Result := CreateRuntime(SingletonPool).CreateInstance(ProcessId, Reference);
+      Runtime := TAureliusInstanceService.Create(SingletonPool, Result);
       Instance := TAureliusInstanceData.Create(SingletonPool, Result);
-      VariablesPersistence := TAureliusInstanceService.Create(SingletonPool, Result);
+      VariablesPersistence := TContextVariables.Create(Runtime);
       Process.InitInstance(Instance, VariablesPersistence);
     finally
       Process.Free;
