@@ -22,11 +22,14 @@ type
   TAureliusPersistence = class(TInterfacedObject)
   strict private
     FPool: IDBConnectionPool;
+    FManager: TObjectManager;
   protected
     function CreateManager: TObjectManager;
+    function Manager: TObjectManager;
     property Pool: IDBConnectionPool read FPool;
   public
     constructor Create(APool: IDBConnectionPool);
+    destructor Destroy; override;
   end;
 
   TAureliusInstanceData = class(TAureliusPersistence, IProcessInstanceData, ITokensPersistence)
@@ -181,28 +184,22 @@ uses
 procedure TAureliusInstanceData.ActivateToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
-    if tokenEnt = nil then
-      raise EOctopusTokenNotFound.CreateFmt(SErrorActivateTokenNotFound, [Token.Id]);
+  tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
+  if tokenEnt = nil then
+    raise EOctopusTokenNotFound.CreateFmt(SErrorActivateTokenNotFound, [Token.Id]);
 
-    case tokenEnt.Status of
-      TTokenEntityStatus.Active:
-        Exit;
-      TTokenEntityStatus.Waiting:
-        begin
-          tokenEnt.Status := TTokenEntityStatus.Active;
-          Manager.Flush(tokenEnt);
-        end;
-    else
-      raise EOctopusException.CreateFmt(SErrorActivateTokenWrongStatus,
-        [Token.Id, Ord(tokenEnt.Status)]);
-    end;
-  finally
-    Manager.Free;
+  case tokenEnt.Status of
+    TTokenEntityStatus.Active:
+      Exit;
+    TTokenEntityStatus.Waiting:
+      begin
+        tokenEnt.Status := TTokenEntityStatus.Active;
+        Manager.Flush(tokenEnt);
+      end;
+  else
+    raise EOctopusException.CreateFmt(SErrorActivateTokenWrongStatus,
+      [Token.Id, Ord(tokenEnt.Status)]);
   end;
 end;
 
@@ -247,28 +244,22 @@ end;
 procedure TAureliusInstanceData.DeactivateToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
-    if tokenEnt = nil then
-      raise EOctopusTokenNotFound.CreateFmt(SErrorDeactivateTokenNotFound, [Token.Id]);
+  tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
+  if tokenEnt = nil then
+    raise EOctopusTokenNotFound.CreateFmt(SErrorDeactivateTokenNotFound, [Token.Id]);
 
-    case tokenEnt.Status of
-      TTokenEntityStatus.Active:
-        begin
-          tokenEnt.Status := TTokenEntityStatus.Waiting;
-          Manager.Flush(tokenEnt);
-        end;
-      TTokenEntityStatus.Waiting:
-        Exit;
-    else
-      raise EOctopusException.CreateFmt(SErrorDeactivateTokenWrongStatus,
-        [Token.Id, Ord(tokenEnt.Status)]);
-    end;
-  finally
-    Manager.Free;
+  case tokenEnt.Status of
+    TTokenEntityStatus.Active:
+      begin
+        tokenEnt.Status := TTokenEntityStatus.Waiting;
+        Manager.Flush(tokenEnt);
+      end;
+    TTokenEntityStatus.Waiting:
+      Exit;
+  else
+    raise EOctopusException.CreateFmt(SErrorDeactivateTokenWrongStatus,
+      [Token.Id, Ord(tokenEnt.Status)]);
   end;
 end;
 
@@ -280,20 +271,14 @@ end;
 procedure TAureliusInstanceData.Finish;
 var
   Instance: TProcessInstanceEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
-    if Instance = nil then
-      raise EOctopusInstanceNotFound.Create(FInstanceId);
+  Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Instance = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-    Instance.Status := TProcessInstanceStatus.Finished;
-    Instance.DueDate := SNull;
-    Manager.Flush(Instance);
-  finally
-    Manager.Free;
-  end;
+  Instance.Status := TProcessInstanceStatus.Finished;
+  Instance.DueDate := SNull;
+  Manager.Flush(Instance);
 end;
 
 function TAureliusInstanceData.GetInstanceEntity(
@@ -312,116 +297,86 @@ end;
 function TAureliusInstanceData.LoadTokens: TList<TToken>;
 var
   tokenList: TList<TTokenEntity>;
-  Manager: TObjectManager;
   I: Integer;
 begin
-  Manager := CreateManager;
+  // Most recent tokens first
+  tokenList := Manager.Find<TTokenEntity>
+    .CreateAlias('Instance', 'i')
+    .Where(Linq['i.Id'] = FInstanceId)
+    .OrderBy(Linq['CreatedOn'])
+    .List;
   try
-    // Most recent tokens first
-    tokenList := Manager.Find<TTokenEntity>
-      .CreateAlias('Instance', 'i')
-      .Where(Linq['i.Id'] = FInstanceId)
-      .OrderBy(Linq['CreatedOn'])
-      .List;
+    Result := TObjectList<TToken>.Create;
     try
-      Result := TObjectList<TToken>.Create;
-      try
-        for I := 0 to tokenList.Count - 1 do
-          Result.Add(TokenFromEntity(tokenList[I]));
-      except
-        Result.Free;
-        raise;
-      end;
-    finally
-      tokenList.Free;
+      for I := 0 to tokenList.Count - 1 do
+        Result.Add(TokenFromEntity(tokenList[I]));
+    except
+      Result.Free;
+      raise;
     end;
   finally
-    Manager.Free;
+    tokenList.Free;
   end;
 end;
 
 procedure TAureliusInstanceData.Lock(TimeoutMS: Integer);
 var
   Instance: TProcessInstanceEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
-    if Instance = nil then
-      raise EOctopusInstanceNotFound.Create(FInstanceId);
+  Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Instance = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-    if Instance.LockExpiration.HasValue and (Now <= Instance.LockExpiration.ValueOrDefault) then
-      raise EOctopusInstanceLockFailed.Create(FInstanceId);
+  if Instance.LockExpiration.HasValue and (Now <= Instance.LockExpiration.ValueOrDefault) then
+    raise EOctopusInstanceLockFailed.Create(FInstanceId);
 
-    Instance.LockExpiration := IncMillisecond(Now, TimeoutMS);
-    Manager.Flush(Instance);
-  finally
-    Manager.Free;
-  end;
+  Instance.LockExpiration := IncMillisecond(Now, TimeoutMS);
+  Manager.Flush(Instance);
 end;
 
 procedure TAureliusInstanceData.RemoveToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
-    if tokenEnt = nil then
-      raise EOctopusTokenNotFound.CreateFmt(SErrorFinishTokenNotFound, [Token.Id]);
+  tokenEnt := Manager.Find<TTokenEntity>(Token.Id);
+  if tokenEnt = nil then
+    raise EOctopusTokenNotFound.CreateFmt(SErrorFinishTokenNotFound, [Token.Id]);
 
-    if tokenEnt.Status = TTokenEntityStatus.Finished then
-      Exit;
+  if tokenEnt.Status = TTokenEntityStatus.Finished then
+    Exit;
 
-    tokenEnt.FinishedOn := Now;
-    tokenEnt.Status := TTokenEntityStatus.Finished;
+  tokenEnt.FinishedOn := Now;
+  tokenEnt.Status := TTokenEntityStatus.Finished;
 //    tokenEnt.ConsumerId := ConsumerId;
-    Manager.Flush(tokenEnt);
-  finally
-    Manager.Free;
-  end;
+  Manager.Flush(tokenEnt);
 end;
 
 procedure TAureliusInstanceData.SaveToken(Token: TToken);
 var
   tokenEnt: TTokenEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    tokenEnt := TTokenEntity.Create;
-    Manager.AddOwnership(tokenEnt);
-    tokenEnt.Status := TTokenEntityStatus.Active;
-    tokenEnt.CreatedOn := Now;
-    tokenEnt.TransitionId := Token.TransitionId;
-    tokenEnt.NodeId := Token.NodeId;
-    tokenEnt.Instance := GetInstanceEntity(Manager);
-    tokenEnt.Parent := Manager.Find<TTokenEntity>(Token.ParentId);
-    Manager.Save(tokenEnt);
-    Token.Id := tokenEnt.Id;
-  finally
-    Manager.Free;
-  end;
+  tokenEnt := TTokenEntity.Create;
+  Manager.AddOwnership(tokenEnt);
+  tokenEnt.Status := TTokenEntityStatus.Active;
+  tokenEnt.CreatedOn := Now;
+  tokenEnt.TransitionId := Token.TransitionId;
+  tokenEnt.NodeId := Token.NodeId;
+  tokenEnt.Instance := GetInstanceEntity(Manager);
+  tokenEnt.Parent := Manager.Find<TTokenEntity>(Token.ParentId);
+  Manager.Save(tokenEnt);
+  Token.Id := tokenEnt.Id;
 end;
 
 procedure TAureliusInstanceData.SetDueDate(DueDate: TDateTime);
 var
   Instance: TProcessInstanceEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
-    if Instance = nil then
-      raise EOctopusInstanceNotFound.Create(FInstanceId);
+  Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Instance = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-    Instance.DueDate := DueDate;
-    Manager.Flush(Instance);
-  finally
-    Manager.Free;
-  end;
+  Instance.DueDate := DueDate;
+  Manager.Flush(Instance);
 end;
 
 function TAureliusInstanceData.TokenFromEntity(InstanceToken: TTokenEntity): TToken;
@@ -442,19 +397,13 @@ end;
 procedure TAureliusInstanceData.Unlock;
 var
   Instance: TProcessInstanceEntity;
-  Manager: TObjectManager;
 begin
-  Manager := CreateManager;
-  try
-    Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
-    if Instance = nil then
-      raise EOctopusInstanceNotFound.Create(FInstanceId);
+  Instance := Manager.Find<TProcessInstanceEntity>(FInstanceId);
+  if Instance = nil then
+    raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-    Instance.LockExpiration := SNull;
-    Manager.Flush(Instance);
-  finally
-    Manager.Free;
-  end;
+  Instance.LockExpiration := SNull;
+  Manager.Flush(Instance);
 end;
 
 { TAureliusPersistence }
@@ -468,6 +417,19 @@ end;
 function TAureliusPersistence.CreateManager: TObjectManager;
 begin
   Result := TObjectManager.Create(Pool.GetConnection, TMappingExplorer.Get(OctopusModel));
+end;
+
+destructor TAureliusPersistence.Destroy;
+begin
+  FManager.Free;
+  inherited;
+end;
+
+function TAureliusPersistence.Manager: TObjectManager;
+begin
+  if FManager = nil then
+    FManager := CreateManager;
+  Result := FManager;
 end;
 
 { TAureliusRuntime }
