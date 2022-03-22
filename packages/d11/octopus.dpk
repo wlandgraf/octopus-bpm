@@ -1,0 +1,67 @@
+package octopus;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$LIBSUFFIX AUTO}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl,
+  dbrtl,
+  tmsbcl,
+  aurelius,
+  sparkle;
+
+contains
+  Octopus.Activities.Task in '..\..\source\Octopus.Activities.Task.pas',
+  Octopus.CommonAncestor in '..\..\source\Octopus.CommonAncestor.pas',
+  Octopus.DataTypes in '..\..\source\Octopus.DataTypes.pas',
+  Octopus.Engine.Aurelius in '..\..\source\Octopus.Engine.Aurelius.pas',
+  Octopus.Engine in '..\..\source\Octopus.Engine.pas',
+  Octopus.Engine.Runner in '..\..\source\Octopus.Engine.Runner.pas',
+  Octopus.Engine.Tokens in '..\..\source\Octopus.Engine.Tokens.pas',
+  Octopus.Engine.Variables in '..\..\source\Octopus.Engine.Variables.pas',
+  Octopus.Entities in '..\..\source\Octopus.Entities.pas',
+  Octopus.Exceptions in '..\..\source\Octopus.Exceptions.pas',
+  Octopus.Global in '..\..\source\Octopus.Global.pas',
+  Octopus.Job.Runner in '..\..\source\Octopus.Job.Runner.pas',
+  Octopus.Json.Converters in '..\..\source\Octopus.Json.Converters.pas',
+  Octopus.Json.Deserializer in '..\..\source\Octopus.Json.Deserializer.pas',
+  Octopus.Json.ObjectConverter in '..\..\source\Octopus.Json.ObjectConverter.pas',
+  Octopus.Json.Serializer in '..\..\source\Octopus.Json.Serializer.pas',
+  Octopus.Persistence.Aurelius in '..\..\source\Octopus.Persistence.Aurelius.pas',
+  Octopus.Persistence.Common in '..\..\source\Octopus.Persistence.Common.pas',
+  Octopus.Process.Activities in '..\..\source\Octopus.Process.Activities.pas',
+  Octopus.Process.Builder in '..\..\source\Octopus.Process.Builder.pas',
+  Octopus.Process.Events in '..\..\source\Octopus.Process.Events.pas',
+  Octopus.Process.Gateways in '..\..\source\Octopus.Process.Gateways.pas',
+  Octopus.Process in '..\..\source\Octopus.Process.pas',
+  Octopus.Process.Validation in '..\..\source\Octopus.Process.Validation.pas',
+  Octopus.Repository in '..\..\source\Octopus.Repository.pas',
+  Octopus.Resources in '..\..\source\Octopus.Resources.pas';
+
+end.

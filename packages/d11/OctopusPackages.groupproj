@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{10E35E4A-95A4-43A2-A6FB-3A94DF157B65}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="octopus.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="octopus">
+        <MSBuild Projects="octopus.dproj"/>
+    </Target>
+    <Target Name="octopus:Clean">
+        <MSBuild Projects="octopus.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="octopus:Make">
+        <MSBuild Projects="octopus.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="octopus"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="octopus:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="octopus:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

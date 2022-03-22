@@ -47,6 +47,7 @@ type
     destructor Destroy; override;
     procedure WriteJson(const Writer: TJsonWriter; const Value: TValue);
     procedure ReadJson(const Reader: TJsonReader; var Value: TValue);
+    function ShouldWrite(const Value: TValue; const Mode: TInclusionMode): Boolean;
   end;
 
   TOctopusConverterFactory = class(TInterfacedObject, IJsonConverterFactory)
@@ -74,6 +75,7 @@ type
     constructor Create(const AClass: TClass; const AItemTypeToken: TTypeToken; AFactory: TOctopusConverterFactory);
     procedure WriteJson(const Writer: TJsonWriter; const Value: TValue);
     procedure ReadJson(const Reader: TJsonReader; var Value: TValue);
+    function ShouldWrite(const Value: TValue; const Mode: TInclusionMode): Boolean;
   end;
 
   TOctopusListConverterFactory = class(TOctopusConverterFactory)
@@ -279,6 +281,12 @@ begin
   end;
 end;
 
+function TOctopusObjectConverter.ShouldWrite(const Value: TValue; const Mode: TInclusionMode): Boolean;
+begin
+  if Mode = TInclusionMode.Always then Exit(True);
+  Result := Value.AsObject <> nil;
+end;
+
 procedure TOctopusObjectConverter.WriteElementId(Writer: TJsonWriter; Element: TFlowElement);
 begin
   if Element = nil then
@@ -398,6 +406,13 @@ begin
     List.Add(Value.AsObject);
   end;
   Reader.ReadEndArray;
+end;
+
+function TOctopusListConverter.ShouldWrite(const Value: TValue; const Mode: TInclusionMode): Boolean;
+begin
+  if Mode = TInclusionMode.Always then Exit(True);
+  Result := Value.AsObject <> nil;
+  // Todo: avoid serializing when list is empty as well
 end;
 
 procedure TOctopusListConverter.WriteJson(const Writer: TJsonWriter; const Value: TValue);
