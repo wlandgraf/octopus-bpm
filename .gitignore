@@ -75,3 +75,4 @@ tests/persistence/octopus.db
 Win32/
 demos/Hello/OctopusHello.res
 octopus.res
+*.dsv
