@@ -11,7 +11,16 @@ type
     class function NewId: string;
   end;
 
+var
+  // This is not thread-safe, for production applications only set it before using other Octopus classes
+  OctopusNow: TFunc<TDateTime>;
+
 implementation
+
+function GetSystemNow: TDateTime;
+begin
+  Result := Now;
+end;
 
 { TUtils }
 
@@ -24,5 +33,7 @@ begin
   Result := S;
 end;
 
+initialization
+  OctopusNow := GetSystemNow;
 end.
 

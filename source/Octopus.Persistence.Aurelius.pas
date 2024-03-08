@@ -16,6 +16,7 @@ uses
   Aurelius.Mapping.Explorer,
   Octopus.Persistence.Common,
   Octopus.Entities,
+  Octopus.Global,
   Octopus.Process;
 
 type
@@ -93,6 +94,8 @@ type
     FInstanceId: string;
     FReference: string;
     FVariables: TList<TCustomCriterion>;
+    FFinishedBefore: TDateTime;
+    FFinishedAfter: TDateTime;
     FOrderBy: string;
     FAscending: Boolean;
     procedure BuildCriteria(Criteria: TCriteria);
@@ -103,7 +106,11 @@ type
     function InstanceId(const AInstanceId: string): IInstanceQuery;
     function Reference(const AReference: string): IInstanceQuery;
     function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
+    function FinishedBefore(const DateValue: TDateTime): IInstanceQuery;
+    function FinishedAfter(const DateValue: TDateTime): IInstanceQuery;
+
     function OrderByCreationDate(AAscending: Boolean = True): IInstanceQuery;
+    function OrderByFinishedDate(AAscending: Boolean = True): IInstanceQuery;
     function Results: TArray<IProcessInstance>;
   end;
 
@@ -280,6 +287,7 @@ begin
 
   Instance.Status := TProcessInstanceStatus.Finished;
   Instance.DueDate := SNull;
+  Instance.FinishedOn := OctopusNow;
   Manager.Flush(Instance);
 end;
 
@@ -329,10 +337,10 @@ begin
   if Instance = nil then
     raise EOctopusInstanceNotFound.Create(FInstanceId);
 
-  if Instance.LockExpiration.HasValue and (Now <= Instance.LockExpiration.ValueOrDefault) then
+  if Instance.LockExpiration.HasValue and (OctopusNow <= Instance.LockExpiration.ValueOrDefault) then
     raise EOctopusInstanceLockFailed.Create(FInstanceId);
 
-  Instance.LockExpiration := IncMillisecond(Now, TimeoutMS);
+  Instance.LockExpiration := IncMillisecond(OctopusNow, TimeoutMS);
   Manager.Flush(Instance);
 end;
 
@@ -347,7 +355,7 @@ begin
   if tokenEnt.Status = TTokenEntityStatus.Finished then
     Exit;
 
-  tokenEnt.FinishedOn := Now;
+  tokenEnt.FinishedOn := OctopusNow;
   tokenEnt.Status := TTokenEntityStatus.Finished;
 //    tokenEnt.ConsumerId := ConsumerId;
   Manager.Flush(tokenEnt);
@@ -360,7 +368,7 @@ begin
   tokenEnt := TTokenEntity.Create;
   Manager.AddOwnership(tokenEnt);
   tokenEnt.Status := TTokenEntityStatus.Active;
-  tokenEnt.CreatedOn := Now;
+  tokenEnt.CreatedOn := OctopusNow;
   tokenEnt.TransitionId := Token.TransitionId;
   tokenEnt.NodeId := Token.NodeId;
   tokenEnt.Instance := GetInstanceEntity(Manager);
@@ -456,7 +464,7 @@ begin
 
     Instance := TProcessInstanceEntity.Create;
     Manager.AddOwnership(Instance);
-    Instance.CreatedOn := Now;
+    Instance.CreatedOn := OctopusNow;
     Instance.ProcessDefinition := Definition;
     if Reference <> '' then
       Instance.Reference := Reference;
@@ -508,7 +516,7 @@ begin
   Manager := CreateManager;
   try
     InstanceIds := TList<IProcessInstance>.Create;
-    LockDue := Now;
+    LockDue := OctopusNow;
     Entities := Manager.Find<TProcessInstanceEntity>
       .Take(MaxAcquiredInstances)
       .Where(Linq['LockExpiration'].IsNull or (Linq['LockExpiration'] < LockDue))
@@ -617,7 +625,7 @@ begin
     Definition.Name := Name;
     Definition.Version := NextVersion;
     Definition.Status := TProcessDefinitionStatus.Published;
-    Definition.CreatedOn := Now;
+    Definition.CreatedOn := OctopusNow;
 
     if Process <> '' then
       Definition.Process.AsBytes := TEncoding.UTF8.GetBytes(Process);
@@ -861,9 +869,25 @@ begin
     Criteria.Add(Linq['Reference'] = FReference);
   while FVariables.Count > 0 do
     Criteria.Add(FVariables.Extract(FVariables[0]));
+  if FFinishedBefore <> 0 then
+    Criteria.Add(Linq['FinishedOn'] < FFinishedBefore);
+  if FFinishedAfter <> 0 then
+    Criteria.Add(Linq['FinishedOn'] > FFinishedAfter);
 
   if FOrderBy <> '' then
     Criteria.OrderBy(FOrderBy, FAscending);
+end;
+
+function TAureliusInstanceQuery.FinishedAfter(const DateValue: TDateTime): IInstanceQuery;
+begin
+  FFinishedAfter := DateValue;
+  Result := Self;
+end;
+
+function TAureliusInstanceQuery.FinishedBefore(const DateValue: TDateTime): IInstanceQuery;
+begin
+  FFinishedBefore := DateValue;
+  Result := Self;
 end;
 
 function TAureliusInstanceQuery.InstanceId(
@@ -877,6 +901,13 @@ function TAureliusInstanceQuery.OrderByCreationDate(AAscending: Boolean): IInsta
 begin
   FAscending := AAscending;
   FOrderBy := 'CreatedOn';
+  Result := Self;
+end;
+
+function TAureliusInstanceQuery.OrderByFinishedDate(AAscending: Boolean): IInstanceQuery;
+begin
+  FAscending := AAscending;
+  FOrderBy := 'FinishedOn';
   Result := Self;
 end;
 

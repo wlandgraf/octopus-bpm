@@ -44,7 +44,12 @@ type
     function InstanceId(const AInstanceId: string): IInstanceQuery;
     function Reference(const AReference: string): IInstanceQuery;
     function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
+    function FinishedBefore(const DateValue: TDateTime): IInstanceQuery;
+    function FinishedAfter(const DateValue: TDateTime): IInstanceQuery;
+
     function OrderByCreationDate(AAscending: Boolean = True): IInstanceQuery;
+    function OrderByFinishedDate(AAscending: Boolean = True): IInstanceQuery;
+
     function Results: TArray<IProcessInstance>;
   end;
 

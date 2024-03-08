@@ -5,6 +5,7 @@ interface
 uses
   Generics.Collections, SysUtils, DateUtils,
   Aurelius.Drivers.Interfaces,
+  Octopus.Global,
   Octopus.Process;
 
 type
@@ -76,7 +77,7 @@ begin
   FInstance.Lock(FLockTimeoutMS);
   try
     FTokens := TContextTokens.Create(FInstance);
-    FInstance.SetDueDate(IncMilliSecond(Now, DueDateIntervalMS));
+    FInstance.SetDueDate(IncMilliSecond(OctopusNow, DueDateIntervalMS));
     InternalExecute;
     Finished := True;
     Tokens := FTokens.LoadTokens;
