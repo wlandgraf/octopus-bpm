@@ -93,6 +93,8 @@ type
     FInstanceId: string;
     FReference: string;
     FVariables: TList<TCustomCriterion>;
+    FOrderBy: string;
+    FAscending: Boolean;
     procedure BuildCriteria(Criteria: TCriteria);
     procedure AddVariable(const Expr: TCustomCriterion);
   public
@@ -101,6 +103,7 @@ type
     function InstanceId(const AInstanceId: string): IInstanceQuery;
     function Reference(const AReference: string): IInstanceQuery;
     function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
+    function OrderByCreationDate(AAscending: Boolean = True): IInstanceQuery;
     function Results: TArray<IProcessInstance>;
   end;
 
@@ -841,6 +844,7 @@ procedure TAureliusInstanceQuery.AfterConstruction;
 begin
   inherited;
   FVariables := TObjectList<TCustomCriterion>.Create;
+  FAscending := True;
 end;
 
 procedure TAureliusInstanceQuery.BeforeDestruction;
@@ -857,12 +861,22 @@ begin
     Criteria.Add(Linq['Reference'] = FReference);
   while FVariables.Count > 0 do
     Criteria.Add(FVariables.Extract(FVariables[0]));
+
+  if FOrderBy <> '' then
+    Criteria.OrderBy(FOrderBy, FAscending);
 end;
 
 function TAureliusInstanceQuery.InstanceId(
   const AInstanceId: string): IInstanceQuery;
 begin
   FInstanceId := AInstanceId;
+  Result := Self;
+end;
+
+function TAureliusInstanceQuery.OrderByCreationDate(AAscending: Boolean): IInstanceQuery;
+begin
+  FAscending := AAscending;
+  FOrderBy := 'CreatedOn';
   Result := Self;
 end;
 
