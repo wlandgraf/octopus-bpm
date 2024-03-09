@@ -3,7 +3,7 @@ unit Octopus.Job.Runner;
 interface
 
 uses
-  System.Generics.Collections, System.SysUtils, System.DateUtils,
+  System.Generics.Collections, System.SysUtils, System.DateUtils, System.Math,
   Sparkle.Sys.JobRunner,
   Octopus.Engine;
 
@@ -36,13 +36,13 @@ end;
 procedure TOctopusJobRunner.ProcessJob;
 var
   Processed: Integer;
-  Total: Integer;
+  Remaining: Integer;
 begin
-  Total := 0;
+  Remaining := InstancesPerJob;
   repeat
-    Processed := FEngine.RunPendingInstances(InstanceBatchSize);
-    Total := Total + Processed;
-  until (Processed = 0) or (Total >= InstancesPerJob) or StopRequested;
+    Processed := FEngine.RunPendingInstances(Min(InstanceBatchSize, Remaining));
+    Remaining := Remaining - Processed;
+  until (Processed = 0) or (Remaining <= 0) or StopRequested;
 end;
 
 end.
