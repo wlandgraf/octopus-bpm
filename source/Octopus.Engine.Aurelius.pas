@@ -61,8 +61,8 @@ type
     function GetVariable(const InstanceId, VariableName: string): IVariable;
     function FindInstances: IInstanceQuery;
 
-    procedure RunPendingInstances;
-    procedure PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
+    function RunPendingInstances(MaxInstances: Integer): Integer;
+    function PurgeFinishedInstances(OnlyFininshedBefore: TDateTime; MaxInstances: Integer): Integer;
 
     property DueDateIntervalMS: Int64 read FDueDateIntervalMS write FDueDateIntervalMS;
   end;
@@ -186,7 +186,7 @@ begin
   Result := CreateRepository(FPool).PublishDefinition(Key, Process, Name);
 end;
 
-procedure TAureliusOctopusEngine.PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
+function TAureliusOctopusEngine.PurgeFinishedInstances(OnlyFininshedBefore: TDateTime; MaxInstances: Integer): Integer;
 var
   Runtime: IOctopusRuntime;
   Instance: IProcessInstance;
@@ -195,8 +195,10 @@ begin
   Runtime := CreateRuntime(FPool);
   Instances := Runtime.CreateInstanceQuery
     .FinishedBefore(OnlyFininshedBefore)
+    .Take(MaxInstances)
     .OrderByCreationDate
     .Results;
+  Result := Length(Instances);
 
   for Instance in Instances do
     // IsFinished should always be true because of the query above, but let's test it again just in case
@@ -242,14 +244,15 @@ begin
   end;
 end;
 
-procedure TAureliusOctopusEngine.RunPendingInstances;
+function TAureliusOctopusEngine.RunPendingInstances(MaxInstances: Integer): Integer;
 var
   Runtime: IOctopusRuntime;
   Instance: IProcessInstance;
   Instances: TArray<IProcessInstance>;
 begin
   Runtime := CreateRuntime(FPool);
-  Instances := Runtime.GetPendingInstances;
+  Instances := Runtime.GetPendingInstances(MaxInstances);
+  Result := Length(Instances);
   Runtime := nil;
   for Instance in Instances do
     RunInstance(Instance.Id)

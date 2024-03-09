@@ -24,8 +24,8 @@ type
     function GetVariable(const InstanceId, VariableName: string): IVariable;
     function FindInstances: IInstanceQuery;
 
-    procedure RunPendingInstances;
-    procedure PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
+    function RunPendingInstances(MaxInstances: Integer): Integer;
+    function PurgeFinishedInstances(OnlyFininshedBefore: TDateTime; MaxInstances: Integer): Integer;
   end;
 
 implementation

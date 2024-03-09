@@ -51,6 +51,7 @@ type
     function OrderByCreationDate(AAscending: Boolean = True): IInstanceQuery;
     function OrderByFinishedDate(AAscending: Boolean = True): IInstanceQuery;
 
+    function Take(const Value: Integer): IInstanceQuery;
     function Results: TArray<IProcessInstance>;
   end;
 
@@ -66,7 +67,7 @@ type
     function CreateInstance(const ProcessId, Reference: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
-    function GetPendingInstances: TArray<IProcessInstance>;
+    function GetPendingInstances(MaxInstances: Integer): TArray<IProcessInstance>;
     procedure DeleteInstance(const InstanceId: string);
   end;
 

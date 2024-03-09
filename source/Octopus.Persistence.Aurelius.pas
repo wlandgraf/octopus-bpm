@@ -87,7 +87,7 @@ type
     function CreateInstance(const ProcessId, Reference: string): string;
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
-    function GetPendingInstances: TArray<IProcessInstance>;
+    function GetPendingInstances(MaxInstances: Integer): TArray<IProcessInstance>;
     procedure DeleteInstance(const InstanceId: string);
   end;
 
@@ -100,6 +100,7 @@ type
     FFinishedAfter: TDateTime;
     FOrderBy: string;
     FAscending: Boolean;
+    FTake: Integer;
     procedure BuildCriteria(Criteria: TCriteria);
     procedure AddVariable(const Expr: TCustomCriterion);
   public
@@ -110,6 +111,7 @@ type
     function VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;
     function FinishedBefore(const DateValue: TDateTime): IInstanceQuery;
     function FinishedAfter(const DateValue: TDateTime): IInstanceQuery;
+    function Take(const Value: Integer): IInstanceQuery;
 
     function OrderByCreationDate(AAscending: Boolean = True): IInstanceQuery;
     function OrderByFinishedDate(AAscending: Boolean = True): IInstanceQuery;
@@ -553,9 +555,7 @@ begin
   end;
 end;
 
-function TAureliusRuntime.GetPendingInstances: TArray<IProcessInstance>;
-const
-  MaxAcquiredInstances = 5;
+function TAureliusRuntime.GetPendingInstances(MaxInstances: Integer): TArray<IProcessInstance>;
 var
   Manager: TObjectManager;
   Entities: TList<TProcessInstanceEntity>;
@@ -569,7 +569,7 @@ begin
     InstanceIds := TList<IProcessInstance>.Create;
     LockDue := OctopusNow;
     Entities := Manager.Find<TProcessInstanceEntity>
-      .Take(MaxAcquiredInstances)
+      .Take(MaxInstances)
       .Where(Linq['LockExpiration'].IsNull or (Linq['LockExpiration'] < LockDue))
       .Where(Linq['DueDate'].IsNull or (Linq['DueDate'] <= LockDue))
       .Where(Linq['Status'] <> TProcessInstanceStatus.Finished)
@@ -932,6 +932,9 @@ begin
       Criteria.Add(Linq['Status'] = TProcessInstanceStatus.Finished);
   end;
 
+  if FTake <> 0 then
+    Criteria.Take(FTake);
+
   if FOrderBy <> '' then
     Criteria.OrderBy(FOrderBy, FAscending);
 end;
@@ -1001,6 +1004,12 @@ begin
     Criteria.Free;
     Manager.Free;
   end;
+end;
+
+function TAureliusInstanceQuery.Take(const Value: Integer): IInstanceQuery;
+begin
+  FTake := Value;
+  Result := Self;
 end;
 
 function TAureliusInstanceQuery.VariableValueEquals(const AName: string; const AValue: TValue): IInstanceQuery;

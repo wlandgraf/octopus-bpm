@@ -11,10 +11,14 @@ type
   TOctopusJobRunner = class(TCustomJobRunner)
   strict private
     FEngine: IOctopusEngine;
+    FInstanceBatchSize: Integer;
+    FInstancesPerJob: Integer;
   protected
     procedure ProcessJob; override;
   public
     constructor Create(AEngine: IOctopusEngine); reintroduce;
+    property InstanceBatchSize: Integer read FInstanceBatchSize write FInstanceBatchSize;
+    property InstancesPerJob: Integer read FInstancesPerJob write FInstancesPerJob;
   end;
 
 implementation
@@ -25,11 +29,19 @@ constructor TOctopusJobRunner.Create(AEngine: IOctopusEngine);
 begin
   inherited Create;
   FEngine := AEngine;
+  FInstanceBatchSize := 5;
+  FInstancesPerJob := 1000;
 end;
 
 procedure TOctopusJobRunner.ProcessJob;
+var
+  Processed: Integer;
+  Total: Integer;
 begin
-  FEngine.RunPendingInstances;
+  Total := 0;
+  repeat
+    Processed := FEngine.RunPendingInstances(InstanceBatchSize);
+  until (Processed = 0) or (Total >= InstancesPerJob);
 end;
 
 end.
