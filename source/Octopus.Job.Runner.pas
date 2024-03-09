@@ -41,7 +41,8 @@ begin
   Total := 0;
   repeat
     Processed := FEngine.RunPendingInstances(InstanceBatchSize);
-  until (Processed = 0) or (Total >= InstancesPerJob);
+    Total := Total + Processed;
+  until (Processed = 0) or (Total >= InstancesPerJob) or StopRequested;
 end;
 
 end.
