@@ -111,6 +111,7 @@ type
   [Table('OCT_TOKEN')]
   [Sequence('SEQ_TOKEN')]
   [DBIndex('idx_oct_token_proc_instance_id', 'proc_instance_id')]
+  [DBIndex('idx_oct_token_parent_id', 'parent_id')]
   [Id('FId', TSmartGuid32LowerGenerator)]
   TTokenEntity = class
   private
