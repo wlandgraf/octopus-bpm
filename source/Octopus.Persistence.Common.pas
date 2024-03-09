@@ -31,6 +31,7 @@ type
     function GetReference: string;
     function GetCreatedOn: TDateTime;
     function GetFinishedOn: TDateTime;
+    function IsFinished: Boolean;
 
     property Id: string read GetId;
     property ProcessId: string read GetProcessId;
@@ -66,6 +67,7 @@ type
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
     function GetPendingInstances: TArray<IProcessInstance>;
+    procedure DeleteInstance(const InstanceId: string);
   end;
 
   IOctopusInstanceService = interface

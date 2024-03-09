@@ -25,6 +25,7 @@ type
     function FindInstances: IInstanceQuery;
 
     procedure RunPendingInstances;
+    procedure PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
   end;
 
 implementation

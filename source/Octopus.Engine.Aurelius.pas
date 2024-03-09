@@ -10,7 +10,8 @@ uses
   Octopus.Persistence.Aurelius,
   Octopus.Process,
   Octopus.Engine,
-  Octopus.Engine.Runner;
+  Octopus.Engine.Runner,
+  Octopus.Global;
 
 type
   IAureliusStorage = interface(IStorage)
@@ -61,6 +62,7 @@ type
     function FindInstances: IInstanceQuery;
 
     procedure RunPendingInstances;
+    procedure PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
 
     property DueDateIntervalMS: Int64 read FDueDateIntervalMS write FDueDateIntervalMS;
   end;
@@ -182,6 +184,25 @@ function TAureliusOctopusEngine.PublishDefinition(const Key, Process: string; co
 begin
   ValidateDefinition(Process);
   Result := CreateRepository(FPool).PublishDefinition(Key, Process, Name);
+end;
+
+procedure TAureliusOctopusEngine.PurgeFinishedInstances(OnlyFininshedBefore: TDateTime);
+var
+  Runtime: IOctopusRuntime;
+  Instance: IProcessInstance;
+  Instances: TArray<IProcessInstance>;
+begin
+  Runtime := CreateRuntime(FPool);
+  Instances := Runtime.CreateInstanceQuery
+    .FinishedBefore(OnlyFininshedBefore)
+    .OrderByCreationDate
+    .Results;
+
+  for Instance in Instances do
+    // IsFinished should always be true because of the query above, but let's test it again just in case
+    if Instance.IsFinished then
+      Runtime.DeleteInstance(Instance.Id);
+  Runtime := nil;
 end;
 
 procedure TAureliusOctopusEngine.RunInstance(Process: TWorkflowProcess;

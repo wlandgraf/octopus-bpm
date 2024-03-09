@@ -9,6 +9,7 @@ uses
   System.DateUtils,
   System.Rtti,
   System.TypInfo,
+  Data.DB,
   Generics.Collections,
   Aurelius.Criteria.Base,
   Aurelius.Drivers.Interfaces,
@@ -87,6 +88,7 @@ type
     function GetInstanceProcessId(const InstanceId: string): string;
     function CreateInstanceQuery: IInstanceQuery;
     function GetPendingInstances: TArray<IProcessInstance>;
+    procedure DeleteInstance(const InstanceId: string);
   end;
 
   TAureliusInstanceQuery = class(TAureliusPersistence, IInstanceQuery)
@@ -145,11 +147,13 @@ type
     FReference: string;
     FCreatedOn: TDateTime;
     FFinishedOn: TDateTime;
+    FIsFinished: Boolean;
     function GetId: string;
     function GetProcessId: string;
     function GetReference: string;
     function GetCreatedOn: TDateTime;
     function GetFinishedOn: TDateTime;
+    function IsFinished: Boolean;
   public
     constructor Create(Entity: TProcessInstanceEntity);
     property Id: string read GetId;
@@ -479,6 +483,53 @@ end;
 function TAureliusRuntime.CreateInstanceQuery: IInstanceQuery;
 begin
   Result := TAureliusInstanceQuery.Create(Pool);
+end;
+
+procedure TAureliusRuntime.DeleteInstance(const InstanceId: string);
+var
+  Manager: TObjectManager;
+  Instance: TProcessInstanceEntity;
+  Trans: IDBTransaction;
+  Statement: IDBStatement;
+  Params: TObjectList<TDBParam>;
+begin
+  Manager := CreateManager;
+  try
+    Instance := Manager.Find<TProcessInstanceEntity>(InstanceId);
+    if Instance = nil then
+      Exit;
+
+    Trans := Manager.Connection.BeginTransaction;
+    try
+      Params := TObjectList<TDBParam>.Create;
+      try
+        // Use raw SQL statements to delete the records. Aurelius will not allow one token to be deleted unless the parent
+        // token is deleted, so a full logic to delete each parent token first will be needed.
+        // This is faster and easier, and it's a simple statement
+        Params.Add(TDBParam.Create('id', ftString, Instance.Id));
+
+        Statement := Manager.Connection.CreateStatement;
+        Statement.SetSQLCommand('Delete from OCT_TOKEN where PROC_INSTANCE_ID = :id');
+        Statement.SetParams(Params);
+        Statement.Execute;
+
+        Statement := Manager.Connection.CreateStatement;
+        Statement.SetSQLCommand('Delete from OCT_VARIABLE where PROC_INSTANCE_ID = :id');
+        Statement.SetParams(Params);
+        Statement.Execute;
+
+        Manager.Remove(Instance);
+        Trans.Commit;
+      finally
+        Params.Free;
+      end;
+    except
+      Trans.Rollback;
+      raise;
+    end;
+  finally
+    Manager.Free;
+  end;
 end;
 
 function TAureliusRuntime.GetInstanceProcessId(
@@ -870,9 +921,16 @@ begin
   while FVariables.Count > 0 do
     Criteria.Add(FVariables.Extract(FVariables[0]));
   if FFinishedBefore <> 0 then
+  begin
     Criteria.Add(Linq['FinishedOn'] < FFinishedBefore);
+    Criteria.Add(Linq['Status'] = TProcessInstanceStatus.Finished);
+  end;
   if FFinishedAfter <> 0 then
+  begin
     Criteria.Add(Linq['FinishedOn'] > FFinishedAfter);
+    if FFinishedBefore = 0 then // do not add it twice
+      Criteria.Add(Linq['Status'] = TProcessInstanceStatus.Finished);
+  end;
 
   if FOrderBy <> '' then
     Criteria.OrderBy(FOrderBy, FAscending);
@@ -978,6 +1036,7 @@ begin
   FReference := Entity.Reference.ValueOrDefault;
   FCreatedOn := Entity.CreatedOn;
   FFinishedOn := Entity.FinishedOn.ValueOrDefault;
+  FIsFinished := Entity.Status = TProcessInstanceStatus.Finished;
 end;
 
 function TAureliusProcessInstance.GetCreatedOn: TDateTime;
@@ -1003,6 +1062,11 @@ end;
 function TAureliusProcessInstance.GetReference: string;
 begin
   Result := FReference;
+end;
+
+function TAureliusProcessInstance.IsFinished: Boolean;
+begin
+  Result := FIsFinished;
 end;
 
 end.
